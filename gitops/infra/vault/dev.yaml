@@ -36,20 +36,22 @@ server:
 
   extraContainers:
     - name: rolesanywhere-credential-helper
-      image: miraclezz/aws-rolesanywhere-helper:1.7.0-arm64
+      image: miraclezz/aws-rolesanywhere-helper:1.7.1-arm64
       imagePullPolicy: IfNotPresent
-      command:
-        - /bin/sh
-        - -c
-        - |
-          apk add --no-cache gcompat 2>/dev/null || true
-          exec /usr/local/bin/aws_signing_helper serve \
-            --certificate /vault/userconfig/rolesanywhere/tls.crt \
-            --private-key /vault/userconfig/rolesanywhere/tls.key \
-            --trust-anchor-arn arn:aws:rolesanywhere:ap-southeast-1:637423223528:trust-anchor/181e3f00-1651-419d-8f29-16715addb3f3 \
-            --profile-arn arn:aws:rolesanywhere:ap-southeast-1:637423223528:profile/2c1f5435-3a01-4f9b-89d1-30347d783c83 \
-            --role-arn arn:aws:iam::637423223528:role/extreme-lab-dev-vault \
-            --port 9911
+      args:
+        - serve
+        - --certificate
+        - /vault/userconfig/rolesanywhere/tls.crt
+        - --private-key
+        - /vault/userconfig/rolesanywhere/tls.key
+        - --trust-anchor-arn
+        - arn:aws:rolesanywhere:ap-southeast-1:637423223528:trust-anchor/181e3f00-1651-419d-8f29-16715addb3f3
+        - --profile-arn
+        - arn:aws:rolesanywhere:ap-southeast-1:637423223528:profile/2c1f5435-3a01-4f9b-89d1-30347d783c83
+        - --role-arn
+        - arn:aws:iam::637423223528:role/extreme-lab-dev-vault
+        - --port
+        - "9911"
       volumeMounts:
         - name: rolesanywhere-cert
           mountPath: /vault/userconfig/rolesanywhere
@@ -62,8 +64,10 @@ server:
           cpu: 200m
           memory: 128Mi
       securityContext:
-        runAsNonRoot: false
+        runAsNonRoot: true
+        runAsUser: 65532
         allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
         capabilities:
           drop:
             - ALL
