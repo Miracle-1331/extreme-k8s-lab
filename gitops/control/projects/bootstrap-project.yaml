@@ -7,6 +7,13 @@ spec:
   description: "Platform apps (monitoring, toolchain, etc.)"
   sourceRepos:
     - git@github.com:Miracle-1331/*
+    - https://gitea.devops.osswave.kr/platform/gitops.git
+    - https://charts.jetstack.io
+    - https://argoproj.github.io/argo-helm
+    - https://helm.releases.hashicorp.com
+    - https://grafana.github.io/helm-charts
+    - https://prometheus-community.github.io/helm-charts
+    - https://open-telemetry.github.io/opentelemetry-helm-charts
   destinations:
     - namespace: "*"
       server: https://kubernetes.default.svc
