@@ -1,0 +1,14 @@
+# Generated — always regenerate with scripts/generate-inventory.sh
+ansible/inventory.ini
+
+# Local kubeconfig overrides
+*.kubeconfig
+kubeconfig
+
+# macOS
+.DS_Store
+
+# Editor
+.idea/
+.vscode/
+*.swp
