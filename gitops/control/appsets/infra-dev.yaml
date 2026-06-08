@@ -79,7 +79,7 @@ spec:
             valueFiles:
               - $values/{{.valuesPath}}
 
-        - repoURL: https://gitea.devops.osswave.kr/platform/gitops.git
+        - repoURL: git@github.com:Miracle-1331/extreme-k8s-lab.git
           targetRevision: main
           ref: values
       destination:
