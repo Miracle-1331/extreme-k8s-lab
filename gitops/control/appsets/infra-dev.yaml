@@ -26,6 +26,15 @@ spec:
             valuesPath: gitops/infra/vault/dev.yaml
             createNamespace: "false"
 
+          - name: rook-ceph
+            repoURL: https://charts.rook.io/release
+            chart: rook-ceph
+            targetRevision: "1.20.0"
+            namespace: rook-ceph
+            releaseName: rook-release
+            valuesPath: gitops/infra/rook-ceph/dev.yaml
+            createNamespace: "false"
+
           # - name: observability-grafana
           #   repoURL: https://grafana.github.io/helm-charts
           #   chart: grafana

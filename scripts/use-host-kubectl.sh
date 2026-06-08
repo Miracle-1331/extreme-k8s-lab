@@ -102,6 +102,10 @@ while read -r node; do
   kubectl --kubeconfig "${KUBECONFIG_PATH}" label node "$node" \
     node-role.kubernetes.io/worker=worker \
     --overwrite
+  
+  kubectl --kubeconfig "${KUBECONFIG_PATH}" label node "$node" \
+    node-role.kubernetes.io/storage=storage \
+    --overwrite
 
 done <<< "${ALL_NODES}"
 

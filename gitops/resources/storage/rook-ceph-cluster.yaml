@@ -1,0 +1,48 @@
+apiVersion: ceph.rook.io/v1
+kind: CephCluster
+metadata:
+  name: rook-ceph
+  namespace: rook-ceph
+spec:
+  cephVersion:
+    image: quay.io/ceph/ceph:v19.2.2
+    allowUnsupported: false
+
+  dataDirHostPath: /var/lib/rook
+
+  mon:
+    count: 3
+    allowMultiplePerNode: true
+
+  mgr:
+    count: 1
+    allowMultiplePerNode: true
+
+  dashboard:
+    enabled: true
+    ssl: false
+
+  crashCollector:
+    disable: false
+
+  storage:
+    useAllNodes: false
+    useAllDevices: true
+    nodes:
+      - name: lima-k8s-worker-1
+      - name: lima-k8s-worker-2
+
+  disruptionManagement:
+    managePodBudgets: true
+
+  healthCheck:
+    daemonHealth:
+      mon:
+        disabled: false
+        interval: 45s
+      osd:
+        disabled: false
+        interval: 60s
+      status:
+        disabled: false
+        interval: 60s

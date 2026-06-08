@@ -10,3 +10,12 @@ done
 
 wait
 limactl list
+
+limactl stop k8s-worker-1
+limactl stop k8s-worker-2
+
+limactl edit k8s-worker-1 --set '.additionalDisks += [{"name":"ceph-worker-1"}]'
+limactl edit k8s-worker-2 --set '.additionalDisks += [{"name":"ceph-worker-2"}]'
+
+limactl start k8s-worker-1
+limactl start k8s-worker-2
