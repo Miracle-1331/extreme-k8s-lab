@@ -15,6 +15,7 @@ spec:
             namespace: cert-manager
             releaseName: cert-manager
             valuesPath: gitops/infra/cert-manager/dev.yaml
+            createNamespace: "true"
 
           # - name: vault
           #   repoURL: https://helm.releases.hashicorp.com
@@ -23,6 +24,7 @@ spec:
           #   namespace: vault
           #   releaseName: vault
           #   valuesPath: gitops/infra/vault/dev.yaml
+          #   createNamespace: "false"
 
           # - name: observability-grafana
           #   repoURL: https://grafana.github.io/helm-charts
@@ -31,6 +33,7 @@ spec:
           #   namespace: observability
           #   releaseName: grafana
           #   valuesPath: gitops/infra/grafana/dev.yaml
+          #   createNamespace: "false"
 
           # - name: observability-loki
           #   repoURL: https://grafana.github.io/helm-charts
@@ -39,6 +42,7 @@ spec:
           #   namespace: observability
           #   releaseName: loki
           #   valuesPath: gitops/infra/loki/dev.yaml
+          #   createNamespace: "false"
 
           # - name: observability-alloy
           #   repoURL: https://grafana.github.io/helm-charts
@@ -47,6 +51,7 @@ spec:
           #   namespace: observability
           #   releaseName: alloy
           #   valuesPath: gitops/infra/alloy/dev.yaml
+          #   createNamespace: "false"
 
           # - name: observability-mimir
           #   repoURL: https://grafana.github.io/helm-charts
@@ -55,6 +60,7 @@ spec:
           #   namespace: observability
           #   releaseName: mimir
           #   valuesPath: gitops/infra/mimir/dev.yaml
+          #   createNamespace: "false"
 
           # - name: observability-tempo
           #   repoURL: https://grafana.github.io/helm-charts
@@ -63,6 +69,7 @@ spec:
           #   namespace: observability
           #   releaseName: tempo
           #   valuesPath: gitops/infra/tempo/dev.yaml
+          #   createNamespace: "false"
   template:
     metadata:
       name: "{{.name}}"
@@ -90,4 +97,4 @@ spec:
           prune: true
           selfHeal: true
         syncOptions:
-          - CreateNamespace=true
+          - CreateNamespace={{.createNamespace}}
