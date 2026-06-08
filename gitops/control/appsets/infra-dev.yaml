@@ -15,16 +15,16 @@ spec:
             namespace: cert-manager
             releaseName: cert-manager
             valuesPath: gitops/infra/cert-manager/dev.yaml
-            createNamespace: "true"
+            createNamespace: "false"
 
-          # - name: vault
-          #   repoURL: https://helm.releases.hashicorp.com
-          #   chart: vault
-          #   targetRevision: "0.32.0"
-          #   namespace: vault
-          #   releaseName: vault
-          #   valuesPath: gitops/infra/vault/dev.yaml
-          #   createNamespace: "false"
+          - name: vault
+            repoURL: https://helm.releases.hashicorp.com
+            chart: vault
+            targetRevision: "0.32.0"
+            namespace: vault
+            releaseName: vault
+            valuesPath: gitops/infra/vault/dev.yaml
+            createNamespace: "false"
 
           # - name: observability-grafana
           #   repoURL: https://grafana.github.io/helm-charts
