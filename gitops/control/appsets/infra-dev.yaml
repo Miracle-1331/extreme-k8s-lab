@@ -14,7 +14,7 @@ spec:
             targetRevision: "v1.20.2"
             namespace: cert-manager
             releaseName: cert-manager
-            valuesPath: infra/cert-manager/dev.yaml
+            valuesPath: gitops/infra/cert-manager/dev.yaml
 
           # - name: vault
           #   repoURL: https://helm.releases.hashicorp.com
@@ -22,7 +22,7 @@ spec:
           #   targetRevision: "0.32.0"
           #   namespace: vault
           #   releaseName: vault
-          #   valuesPath: infra/vault/dev.yaml
+          #   valuesPath: gitops/infra/vault/dev.yaml
 
           # - name: observability-grafana
           #   repoURL: https://grafana.github.io/helm-charts
@@ -30,7 +30,7 @@ spec:
           #   targetRevision: "10.2.0"
           #   namespace: observability
           #   releaseName: grafana
-          #   valuesPath: infra/grafana/dev.yaml
+          #   valuesPath: gitops/infra/grafana/dev.yaml
 
           # - name: observability-loki
           #   repoURL: https://grafana.github.io/helm-charts
@@ -38,7 +38,7 @@ spec:
           #   targetRevision: "6.46.0"
           #   namespace: observability
           #   releaseName: loki
-          #   valuesPath: infra/loki/dev.yaml
+          #   valuesPath: gitops/infra/loki/dev.yaml
 
           # - name: observability-alloy
           #   repoURL: https://grafana.github.io/helm-charts
@@ -46,7 +46,7 @@ spec:
           #   targetRevision: "1.4.0"
           #   namespace: observability
           #   releaseName: alloy
-          #   valuesPath: infra/alloy/dev.yaml
+          #   valuesPath: gitops/infra/alloy/dev.yaml
 
           # - name: observability-mimir
           #   repoURL: https://grafana.github.io/helm-charts
@@ -54,7 +54,7 @@ spec:
           #   targetRevision: "6.0.4"
           #   namespace: observability
           #   releaseName: mimir
-          #   valuesPath: infra/mimir/dev.yaml
+          #   valuesPath: gitops/infra/mimir/dev.yaml
 
           # - name: observability-tempo
           #   repoURL: https://grafana.github.io/helm-charts
@@ -62,7 +62,7 @@ spec:
           #   targetRevision: "1.24.3"
           #   namespace: observability
           #   releaseName: tempo
-          #   valuesPath: infra/tempo/dev.yaml
+          #   valuesPath: gitops/infra/tempo/dev.yaml
   template:
     metadata:
       name: "{{.name}}"
