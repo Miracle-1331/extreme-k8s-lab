@@ -5,9 +5,9 @@
     pod_cidr: "10.244.0.0/16"
 
   tasks:
-    - name: Get control-plane primary IP
+    - name: Get control-plane unique vzNAT IP
       ansible.builtin.shell: |
-        ip -4 route get 1.1.1.1 | awk '{print $7; exit}'
+        hostname -I | tr ' ' '\n' | grep '^192\.168\.105\.' | head -n1
       register: cp_ip
       changed_when: false
 
@@ -22,6 +22,16 @@
         dest: /root/kubeadm-config.yaml
         mode: "0600"
         content: |
+          apiVersion: kubeadm.k8s.io/v1beta4
+          kind: InitConfiguration
+          localAPIEndpoint:
+            advertiseAddress: "{{ cp_ip.stdout }}"
+            bindPort: 6443
+          nodeRegistration:
+            kubeletExtraArgs:
+              - name: node-ip
+                value: "{{ cp_ip.stdout }}"
+          ---
           apiVersion: kubeadm.k8s.io/v1beta4
           kind: ClusterConfiguration
           kubernetesVersion: stable

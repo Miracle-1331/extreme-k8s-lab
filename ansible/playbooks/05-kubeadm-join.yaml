@@ -30,6 +30,21 @@
       changed_when: false
       when: not kubelet_conf.stat.exists
 
+    - name: Get worker unique vzNAT IP
+      ansible.builtin.shell: |
+        hostname -I | tr ' ' '\n' | grep '^192\.168\.105\.' | head -n1
+      register: worker_ip
+      changed_when: false
+      when: not kubelet_conf.stat.exists
+
+    - name: Set kubelet node-ip before join
+      ansible.builtin.copy:
+        dest: /etc/default/kubelet
+        mode: "0644"
+        content: |
+          KUBELET_EXTRA_ARGS=--node-ip={{ worker_ip.stdout }}
+      when: not kubelet_conf.stat.exists
+
     - name: Join worker node
       ansible.builtin.command: "{{ join_command.stdout }}"
       when: not kubelet_conf.stat.exists
