@@ -1,0 +1,37 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: vault-rolesanywhere
+  namespace: vault
+spec:
+  secretName: vault-rolesanywhere-cert
+  duration: 24h
+  renewBefore: 6h
+
+  privateKey:
+    algorithm: RSA
+    size: 2048
+    rotationPolicy: Always
+
+  subject:
+    organizations:
+      - extreme-lab
+    organizationalUnits:
+      - vault
+
+  commonName: vault.vault.svc.cluster.local
+
+  dnsNames:
+    - vault.vault.svc.cluster.local
+    - vault-0.vault-internal.vault.svc.cluster.local
+    - vault-1.vault-internal.vault.svc.cluster.local
+    - vault-2.vault-internal.vault.svc.cluster.local
+
+  usages:
+    - digital signature
+    - client auth
+
+  issuerRef:
+    name: rolesanywhere-lab-ca
+    kind: ClusterIssuer
+    group: cert-manager.io
