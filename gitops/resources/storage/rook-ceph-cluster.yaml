@@ -27,10 +27,14 @@ spec:
 
   storage:
     useAllNodes: false
-    useAllDevices: true
+    useAllDevices: false
     nodes:
       - name: lima-k8s-worker-1
+        devices:
+          - name: vdb
       - name: lima-k8s-worker-2
+        devices:
+          - name: vdb
 
   disruptionManagement:
     managePodBudgets: true
