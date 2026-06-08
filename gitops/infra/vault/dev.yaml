@@ -116,13 +116,13 @@ server:
   dataStorage:
     enabled: true
     size: 10Gi
-    storageClass: local-path
+    storageClass: ceph-block
     accessMode: ReadWriteOnce
 
   auditStorage:
     enabled: true
     size: 5Gi
-    storageClass: local-path
+    storageClass: ceph-block
     accessMode: ReadWriteOnce
 
   resources:
