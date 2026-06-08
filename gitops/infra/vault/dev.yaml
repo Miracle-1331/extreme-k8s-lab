@@ -34,10 +34,11 @@ server:
       mountPath: /vault/userconfig/rolesanywhere
       readOnly: true
 
-  extraContainers:
+  extraInitContainers:
     - name: rolesanywhere-credential-helper
       image: miraclezz/aws-rolesanywhere-helper:1.7.1-arm64
       imagePullPolicy: IfNotPresent
+      restartPolicy: Always
       args:
         - serve
         - --certificate
@@ -71,6 +72,8 @@ server:
         capabilities:
           drop:
             - ALL
+
+  extraContainers: []
 
   ha:
     enabled: true
