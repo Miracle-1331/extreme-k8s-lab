@@ -2,8 +2,8 @@
 arch: "aarch64"
 vmType: "vz"
 
-cpus: 2
-memory: "4GiB"
+cpus: 4
+memory: "8GiB"
 disk: "50GiB"
 
 images:
