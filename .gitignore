@@ -4,6 +4,39 @@ ansible/inventory.ini
 # Local kubeconfig overrides
 *.kubeconfig
 kubeconfig
+*.kubeconfig.yaml
+.kube/
+
+# PKI private/generated material
+pki/*.key
+pki/*.csr
+pki/*.srl
+pki/*.crt
+pki/*.pem
+pki/*.p12
+pki/*.pfx
+
+# Keep PKI generation configs/scripts if needed
+!pki/*.cnf
+!pki/README.md
+
+# Terraform local state / secrets
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Helm/secret local values
+values/*.local.yaml
+values/*secret*.yaml
+values/*secrets*.yaml
 
 # macOS
 .DS_Store

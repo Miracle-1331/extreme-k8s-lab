@@ -1,0 +1,138 @@
+global:
+  enabled: true
+  tlsDisable: true
+
+injector:
+  enabled: true
+  replicas: 1
+
+server:
+  image:
+    repository: hashicorp/vault
+    tag: "1.19.0"
+
+  serviceAccount:
+    create: true
+    name: vault
+
+  logLevel: info
+
+  extraEnvironmentVars:
+    AWS_REGION: "ap-southeast-1"
+    AWS_DEFAULT_REGION: "ap-southeast-1"
+    AWS_EC2_METADATA_SERVICE_ENDPOINT: "http://127.0.0.1:9911"
+    AWS_EC2_METADATA_DISABLED: "false"
+
+  volumes:
+    - name: rolesanywhere-cert
+      secret:
+        secretName: vault-rolesanywhere-cert
+        defaultMode: 0400
+
+  volumeMounts:
+    - name: rolesanywhere-cert
+      mountPath: /vault/userconfig/rolesanywhere
+      readOnly: true
+
+  extraContainers:
+    - name: rolesanywhere-credential-helper
+      image: miraclezz/aws-rolesanywhere-helper:1.7.0-arm64
+      imagePullPolicy: IfNotPresent
+      args:
+        - serve
+        - --certificate
+        - /vault/userconfig/rolesanywhere/tls.crt
+        - --private-key
+        - /vault/userconfig/rolesanywhere/tls.key
+        - --trust-anchor-arn
+        - arn:aws:rolesanywhere:ap-southeast-1:637423223528:trust-anchor/181e3f00-1651-419d-8f29-16715addb3f3
+        - --profile-arn
+        - arn:aws:rolesanywhere:ap-southeast-1:637423223528:profile/2c1f5435-3a01-4f9b-89d1-30347d783c83
+        - --role-arn
+        - arn:aws:iam::637423223528:role/extreme-lab-dev-vault
+        - --port
+        - "9911"
+      volumeMounts:
+        - name: rolesanywhere-cert
+          mountPath: /vault/userconfig/rolesanywhere
+          readOnly: true
+      resources:
+        requests:
+          cpu: 25m
+          memory: 32Mi
+        limits:
+          cpu: 200m
+          memory: 128Mi
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop:
+            - ALL
+
+  ha:
+    enabled: true
+    replicas: 3
+
+    raft:
+      enabled: true
+      setNodeId: true
+
+      config: |
+        ui = true
+        cluster_name = "vault-extreme-lab"
+
+        listener "tcp" {
+          address = "[::]:8200"
+          cluster_address = "[::]:8201"
+          tls_disable = "true"
+        }
+
+        storage "raft" {
+          path = "/vault/data"
+
+          retry_join {
+            leader_api_addr = "http://vault-0.vault-internal:8200"
+          }
+
+          retry_join {
+            leader_api_addr = "http://vault-1.vault-internal:8200"
+          }
+
+          retry_join {
+            leader_api_addr = "http://vault-2.vault-internal:8200"
+          }
+        }
+
+        seal "awskms" {
+          region     = "ap-southeast-1"
+          kms_key_id = "alias/extreme-lab-dev-vault-auto-unseal"
+        }
+
+        service_registration "kubernetes" {}
+
+  dataStorage:
+    enabled: true
+    size: 10Gi
+    storageClass: local-path
+    accessMode: ReadWriteOnce
+
+  auditStorage:
+    enabled: true
+    size: 5Gi
+    storageClass: local-path
+    accessMode: ReadWriteOnce
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+ui:
+  enabled: true
+  serviceType: ClusterIP

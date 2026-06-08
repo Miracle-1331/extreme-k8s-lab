@@ -1,0 +1,23 @@
+[ req ]
+default_bits       = 2048
+default_md         = sha256
+distinguished_name = dn
+req_extensions     = v3_req
+prompt             = no
+
+[ dn ]
+CN = vault.vault.svc.cluster.local
+O  = extreme-lab
+OU = vault
+
+[ v3_req ]
+basicConstraints = critical, CA:false
+keyUsage         = critical, digitalSignature
+extendedKeyUsage = clientAuth
+subjectAltName   = @alt_names
+
+[ alt_names ]
+DNS.1 = vault.vault.svc.cluster.local
+DNS.2 = vault-0.vault-internal.vault.svc.cluster.local
+DNS.3 = vault-1.vault-internal.vault.svc.cluster.local
+DNS.4 = vault-2.vault-internal.vault.svc.cluster.local
