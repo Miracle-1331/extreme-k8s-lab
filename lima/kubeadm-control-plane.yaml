@@ -1,0 +1,63 @@
+# lima/kubeadm-control-plane.yaml
+arch: "aarch64"
+vmType: "vz"
+
+cpus: 4
+memory: "8GiB"
+disk: "80GiB"
+
+images:
+  - location: "https://cloud-images.ubuntu.com/releases/24.04/release/ubuntu-24.04-server-cloudimg-arm64.img"
+    arch: "aarch64"
+
+mounts:
+  - location: "~"
+    writable: true
+
+networks:
+  - lima: shared
+
+provision:
+  - mode: system
+    script: |
+      #!/usr/bin/env bash
+      set -euxo pipefail
+
+      export DEBIAN_FRONTEND=noninteractive
+
+      apt-get update
+      apt-get install -y \
+        curl \
+        ca-certificates \
+        gnupg \
+        lsb-release \
+        jq \
+        unzip \
+        git \
+        make \
+        conntrack \
+        iptables \
+        socat \
+        ebtables \
+        ethtool \
+        open-iscsi \
+        nfs-common
+
+      modprobe br_netfilter || true
+      modprobe overlay || true
+
+      cat >/etc/sysctl.d/99-kubernetes.conf <<SYSCTL
+      net.bridge.bridge-nf-call-iptables=1
+      net.bridge.bridge-nf-call-ip6tables=1
+      net.ipv4.ip_forward=1
+      fs.inotify.max_user_watches=1048576
+      fs.inotify.max_user_instances=1024
+      SYSCTL
+
+      sysctl --system
+
+probes:
+  - script: |
+      #!/usr/bin/env bash
+      test -f /etc/sysctl.d/99-kubernetes.conf
+    hint: "Control-plane OS bootstrap is not ready yet."

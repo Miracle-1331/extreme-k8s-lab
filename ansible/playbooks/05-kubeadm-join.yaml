@@ -1,0 +1,35 @@
+# ansible/playbooks/05-kubeadm-join.yaml
+
+- name: Join workers to Kubernetes cluster
+  hosts: workers
+  become: true
+  tasks:
+    - name: Check if node already joined
+      ansible.builtin.stat:
+        path: /etc/kubernetes/kubelet.conf
+      register: kubelet_conf
+
+    - name: Read control-plane IP
+      ansible.builtin.command: cat /tmp/k8s-control-plane-ip
+      delegate_to: k8s-cp-1
+      register: cp_ip
+      changed_when: false
+      when: not kubelet_conf.stat.exists
+
+    - name: Precheck API server connectivity from worker
+      ansible.builtin.wait_for:
+        host: "{{ cp_ip.stdout }}"
+        port: 6443
+        timeout: 30
+      when: not kubelet_conf.stat.exists
+
+    - name: Get join command from control plane
+      ansible.builtin.command: cat /tmp/kubeadm-join-command
+      delegate_to: k8s-cp-1
+      register: join_command
+      changed_when: false
+      when: not kubelet_conf.stat.exists
+
+    - name: Join worker node
+      ansible.builtin.command: "{{ join_command.stdout }}"
+      when: not kubelet_conf.stat.exists

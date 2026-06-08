@@ -1,0 +1,83 @@
+- name: Initialize Kubernetes control plane
+  hosts: control_plane
+  become: true
+  vars:
+    pod_cidr: "10.244.0.0/16"
+
+  tasks:
+    - name: Get control-plane primary IP
+      ansible.builtin.shell: |
+        ip -4 route get 1.1.1.1 | awk '{print $7; exit}'
+      register: cp_ip
+      changed_when: false
+
+    - name: Write control-plane IP fact
+      ansible.builtin.copy:
+        dest: /tmp/k8s-control-plane-ip
+        mode: "0644"
+        content: "{{ cp_ip.stdout }}"
+
+    - name: Create kubeadm config
+      ansible.builtin.copy:
+        dest: /root/kubeadm-config.yaml
+        mode: "0600"
+        content: |
+          apiVersion: kubeadm.k8s.io/v1beta4
+          kind: ClusterConfiguration
+          kubernetesVersion: stable
+          controlPlaneEndpoint: "{{ cp_ip.stdout }}:6443"
+          networking:
+            podSubnet: "{{ pod_cidr }}"
+            serviceSubnet: "10.96.0.0/12"
+          apiServer:
+            certSANs:
+              - "{{ cp_ip.stdout }}"
+              - "127.0.0.1"
+              - "localhost"
+          ---
+          apiVersion: kubelet.config.k8s.io/v1beta1
+          kind: KubeletConfiguration
+          cgroupDriver: systemd
+
+    - name: Check if cluster is already initialized
+      ansible.builtin.stat:
+        path: /etc/kubernetes/admin.conf
+      register: admin_conf
+
+    - name: Run kubeadm init
+      ansible.builtin.command: kubeadm init --config /root/kubeadm-config.yaml
+      when: not admin_conf.stat.exists
+
+    - name: Get remote SSH user home directory
+      ansible.builtin.getent:
+        database: passwd
+        key: "{{ ansible_user }}"
+      register: passwd_entry
+
+    - name: Create kube config directory for remote user
+      ansible.builtin.file:
+        path: "{{ passwd_entry.ansible_facts.getent_passwd[ansible_user][4] }}/.kube"
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0755"
+
+    - name: Copy admin kubeconfig for remote user
+      ansible.builtin.copy:
+        src: /etc/kubernetes/admin.conf
+        dest: "{{ passwd_entry.ansible_facts.getent_passwd[ansible_user][4] }}/.kube/config"
+        remote_src: true
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0600"
+
+    - name: Generate worker join command
+      ansible.builtin.command: kubeadm token create --print-join-command
+      register: join_command
+      changed_when: false
+
+    - name: Store join command on control plane
+      ansible.builtin.copy:
+        content: "{{ join_command.stdout }}"
+        dest: /tmp/kubeadm-join-command
+        mode: "0600"

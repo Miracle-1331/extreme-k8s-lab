@@ -1,0 +1,5 @@
+# ansible/group_vars/all.yaml
+kubernetes_version: "1.33"
+pod_cidr: "10.244.0.0/16"
+service_cidr: "10.96.0.0/12"
+cni: "cilium"
