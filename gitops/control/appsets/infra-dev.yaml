@@ -29,9 +29,9 @@ spec:
           - name: rook-ceph
             repoURL: https://charts.rook.io/release
             chart: rook-ceph
-            targetRevision: "1.20.0"
+            targetRevision: "v1.16.6"
             namespace: rook-ceph
-            releaseName: rook-release
+            releaseName: rook-ceph
             valuesPath: gitops/infra/rook-ceph/dev.yaml
             createNamespace: "false"
 

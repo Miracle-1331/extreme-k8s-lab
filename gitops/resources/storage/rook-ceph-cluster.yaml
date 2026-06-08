@@ -5,7 +5,7 @@ metadata:
   namespace: rook-ceph
 spec:
   cephVersion:
-    image: quay.io/ceph/ceph:v19.2.2
+    image: quay.io/ceph/ceph:v18.2.7
     allowUnsupported: false
 
   dataDirHostPath: /var/lib/rook
@@ -27,10 +27,14 @@ spec:
 
   storage:
     useAllNodes: false
-    useAllDevices: true
+    useAllDevices: false
     nodes:
       - name: lima-k8s-worker-1
+        directories:
+          - path: /var/lib/rook/osd-data
       - name: lima-k8s-worker-2
+        directories:
+          - path: /var/lib/rook/osd-data
 
   disruptionManagement:
     managePodBudgets: true
