@@ -10,7 +10,7 @@ spec:
         elements:
           - name: cert-manager
             repoURL: https://charts.jetstack.io
-            chart: jetstack/cert-manager
+            chart: cert-manager
             targetRevision: "v1.20.2"
             namespace: cert-manager
             releaseName: cert-manager
