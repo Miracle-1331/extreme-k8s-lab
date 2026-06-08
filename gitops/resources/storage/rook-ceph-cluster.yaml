@@ -27,14 +27,10 @@ spec:
 
   storage:
     useAllNodes: false
-    useAllDevices: false
+    useAllDevices: true
     nodes:
       - name: lima-k8s-worker-1
-        directories:
-          - path: /var/lib/rook/osd-data
       - name: lima-k8s-worker-2
-        directories:
-          - path: /var/lib/rook/osd-data
 
   disruptionManagement:
     managePodBudgets: true
