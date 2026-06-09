@@ -58,17 +58,21 @@ server:
           mountPath: /vault/userconfig/rolesanywhere
           readOnly: true
       startupProbe:
-        httpGet:
-          path: /latest/meta-data/iam/security-credentials/
-          port: 9911
+        exec:
+          command:
+            - curl
+            - -sf
+            - http://127.0.0.1:9911/latest/meta-data/iam/security-credentials/
         initialDelaySeconds: 1
         periodSeconds: 5
         timeoutSeconds: 15
         failureThreshold: 24
       livenessProbe:
-        httpGet:
-          path: /latest/meta-data/iam/security-credentials/
-          port: 9911
+        exec:
+          command:
+            - curl
+            - -sf
+            - http://127.0.0.1:9911/latest/meta-data/iam/security-credentials/
         periodSeconds: 30
         timeoutSeconds: 15
         failureThreshold: 3
