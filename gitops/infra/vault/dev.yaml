@@ -20,8 +20,8 @@ server:
   extraEnvironmentVars:
     AWS_REGION: "ap-southeast-1"
     AWS_DEFAULT_REGION: "ap-southeast-1"
-    AWS_PROFILE: "default"
-    AWS_SHARED_CREDENTIALS_FILE: "/aws/credentials/credentials"
+    AWS_SDK_LOAD_CONFIG: "1"
+    AWS_CONFIG_FILE: "/aws/config/credentials"
     AWS_EC2_METADATA_DISABLED: "true"
 
   volumes:
@@ -29,20 +29,25 @@ server:
       secret:
         secretName: vault-rolesanywhere-cert
         defaultMode: 0444
-    - name: aws-credentials
+    - name: aws-helper
+      emptyDir: {}
+    - name: aws-config
       emptyDir: {}
 
   volumeMounts:
     - name: rolesanywhere-cert
       mountPath: /vault/userconfig/rolesanywhere
       readOnly: true
-    - name: aws-credentials
-      mountPath: /aws/credentials
+    - name: aws-helper
+      mountPath: /aws/helper
+      readOnly: true
+    - name: aws-config
+      mountPath: /aws/config
       readOnly: true
 
   extraInitContainers:
-    - name: setup-rolesanywhere-credentials
-      image: miraclezz/aws-rolesanywhere-helper:1.7.1-arm64-jq
+    - name: setup-rolesanywhere-credential-process
+      image: miraclezz/aws-rolesanywhere-helper:1.7.1-arm64
       imagePullPolicy: IfNotPresent
       command:
         - /bin/sh
@@ -51,36 +56,36 @@ server:
         - |
           set -eux
 
-          /usr/local/bin/aws_signing_helper credential-process \
+          cp /usr/local/bin/aws_signing_helper /aws/helper/aws_signing_helper
+          chmod 0555 /aws/helper/aws_signing_helper
+
+          printf '[default]\nregion = ap-southeast-1\ncredential_process = /aws/helper/aws_signing_helper credential-process --certificate /vault/userconfig/rolesanywhere/tls.crt --private-key /vault/userconfig/rolesanywhere/tls.key --trust-anchor-arn arn:aws:rolesanywhere:ap-southeast-1:637423223528:trust-anchor/181e3f00-1651-419d-8f29-16715addb3f3 --profile-arn arn:aws:rolesanywhere:ap-southeast-1:637423223528:profile/2c1f5435-3a01-4f9b-89d1-30347d783c83 --role-arn arn:aws:iam::637423223528:role/extreme-lab-dev-vault\n' > /aws/config/credentials
+
+          chmod 0444 /aws/config/credentials
+
+          echo "--- config written ---"
+          cat /aws/config/credentials
+
+          /aws/helper/aws_signing_helper credential-process \
             --certificate /vault/userconfig/rolesanywhere/tls.crt \
             --private-key /vault/userconfig/rolesanywhere/tls.key \
             --trust-anchor-arn arn:aws:rolesanywhere:ap-southeast-1:637423223528:trust-anchor/181e3f00-1651-419d-8f29-16715addb3f3 \
             --profile-arn arn:aws:rolesanywhere:ap-southeast-1:637423223528:profile/2c1f5435-3a01-4f9b-89d1-30347d783c83 \
             --role-arn arn:aws:iam::637423223528:role/extreme-lab-dev-vault \
-            > /tmp/rolesanywhere-creds.json
+            | grep -q AccessKeyId
 
-          jq -e '.AccessKeyId and .SecretAccessKey and .SessionToken' /tmp/rolesanywhere-creds.json
-
-          cat > /aws/credentials/credentials <<EOF
-          [default]
-          aws_access_key_id = $(jq -r '.AccessKeyId' /tmp/rolesanywhere-creds.json)
-          aws_secret_access_key = $(jq -r '.SecretAccessKey' /tmp/rolesanywhere-creds.json)
-          aws_session_token = $(jq -r '.SessionToken' /tmp/rolesanywhere-creds.json)
-          EOF
-
-          chmod 0400 /aws/credentials/credentials
-
-          echo "Generated AWS shared credentials file:"
-          grep -E '^\[default\]|aws_access_key_id|aws_session_token' /aws/credentials/credentials
+          echo "Roles Anywhere credential-process verified OK"
       volumeMounts:
         - name: rolesanywhere-cert
           mountPath: /vault/userconfig/rolesanywhere
           readOnly: true
-        - name: aws-credentials
-          mountPath: /aws/credentials
+        - name: aws-helper
+          mountPath: /aws/helper
+        - name: aws-config
+          mountPath: /aws/config
       securityContext:
-        runAsNonRoot: false
-        runAsUser: 0
+        runAsNonRoot: true
+        runAsUser: 65532
         allowPrivilegeEscalation: false
         readOnlyRootFilesystem: true
         capabilities:
