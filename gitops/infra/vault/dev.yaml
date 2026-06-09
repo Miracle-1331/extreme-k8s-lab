@@ -20,85 +20,71 @@ server:
   extraEnvironmentVars:
     AWS_REGION: "ap-southeast-1"
     AWS_DEFAULT_REGION: "ap-southeast-1"
-    AWS_EC2_METADATA_SERVICE_ENDPOINT: "http://127.0.0.1:9911/"
-    AWS_EC2_METADATA_DISABLED: "false"
+    AWS_SDK_LOAD_CONFIG: "1"
+    AWS_CONFIG_FILE: "/aws/config/config"
+    AWS_EC2_METADATA_DISABLED: "true"
 
   volumes:
     - name: rolesanywhere-cert
       secret:
         secretName: vault-rolesanywhere-cert
-        defaultMode: 0440
+        # Use 0444 first to prove the model. Harden later with fsGroup.
+        defaultMode: 0444
+    - name: aws-helper
+      emptyDir: {}
+    - name: aws-config
+      emptyDir: {}
 
   volumeMounts:
     - name: rolesanywhere-cert
       mountPath: /vault/userconfig/rolesanywhere
       readOnly: true
+    - name: aws-helper
+      mountPath: /aws/helper
+      readOnly: true
+    - name: aws-config
+      mountPath: /aws/config
+      readOnly: true
 
   extraInitContainers:
-    - name: rolesanywhere-credential-helper
+    - name: setup-rolesanywhere-credential-process
       image: miraclezz/aws-rolesanywhere-helper:1.7.1-arm64
       imagePullPolicy: IfNotPresent
-      restartPolicy: Always
+      command:
+        - /bin/sh
+        - -ec
       args:
-        - serve
-        - --certificate
-        - /vault/userconfig/rolesanywhere/tls.crt
-        - --private-key
-        - /vault/userconfig/rolesanywhere/tls.key
-        - --trust-anchor-arn
-        - arn:aws:rolesanywhere:ap-southeast-1:637423223528:trust-anchor/181e3f00-1651-419d-8f29-16715addb3f3
-        - --profile-arn
-        - arn:aws:rolesanywhere:ap-southeast-1:637423223528:profile/2c1f5435-3a01-4f9b-89d1-30347d783c83
-        - --role-arn
-        - arn:aws:iam::637423223528:role/extreme-lab-dev-vault
-        - --port
-        - "9911"
+        - |
+          set -eux
+
+          cp /usr/local/bin/aws_signing_helper /aws/helper/aws_signing_helper
+          chmod 0555 /aws/helper/aws_signing_helper
+
+          cat > /aws/config/config <<'EOF'
+          [default]
+          region = ap-southeast-1
+          credential_process = /aws/helper/aws_signing_helper credential-process --certificate /vault/userconfig/rolesanywhere/tls.crt --private-key /vault/userconfig/rolesanywhere/tls.key --trust-anchor-arn arn:aws:rolesanywhere:ap-southeast-1:637423223528:trust-anchor/181e3f00-1651-419d-8f29-16715addb3f3 --profile-arn arn:aws:rolesanywhere:ap-southeast-1:637423223528:profile/2c1f5435-3a01-4f9b-89d1-30347d783c83 --role-arn arn:aws:iam::637423223528:role/extreme-lab-dev-vault
+          EOF
+
+          chmod 0444 /aws/config/config
+
+          /aws/helper/aws_signing_helper credential-process \
+            --certificate /vault/userconfig/rolesanywhere/tls.crt \
+            --private-key /vault/userconfig/rolesanywhere/tls.key \
+            --trust-anchor-arn arn:aws:rolesanywhere:ap-southeast-1:637423223528:trust-anchor/181e3f00-1651-419d-8f29-16715addb3f3 \
+            --profile-arn arn:aws:rolesanywhere:ap-southeast-1:637423223528:profile/2c1f5435-3a01-4f9b-89d1-30347d783c83 \
+            --role-arn arn:aws:iam::637423223528:role/extreme-lab-dev-vault \
+            >/tmp/credentials.json
+
+          grep AccessKeyId /tmp/credentials.json
       volumeMounts:
         - name: rolesanywhere-cert
           mountPath: /vault/userconfig/rolesanywhere
           readOnly: true
-      startupProbe:
-        exec:
-          command:
-            - /usr/local/bin/aws_signing_helper
-            - credential-process
-            - --certificate
-            - /vault/userconfig/rolesanywhere/tls.crt
-            - --private-key
-            - /vault/userconfig/rolesanywhere/tls.key
-            - --trust-anchor-arn
-            - arn:aws:rolesanywhere:ap-southeast-1:637423223528:trust-anchor/181e3f00-1651-419d-8f29-16715addb3f3
-            - --profile-arn
-            - arn:aws:rolesanywhere:ap-southeast-1:637423223528:profile/2c1f5435-3a01-4f9b-89d1-30347d783c83
-            - --role-arn
-            - arn:aws:iam::637423223528:role/extreme-lab-dev-vault
-        initialDelaySeconds: 2
-        periodSeconds: 10
-        timeoutSeconds: 20
-        failureThreshold: 18
-      livenessProbe:
-        tcpSocket:
-          port: 9911
-        initialDelaySeconds: 10
-        periodSeconds: 30
-        timeoutSeconds: 5
-        failureThreshold: 3
-      resources:
-        requests:
-          cpu: 25m
-          memory: 32Mi
-        limits:
-          cpu: 200m
-          memory: 128Mi
-      securityContext:
-        runAsNonRoot: true
-        runAsUser: 65532
-        runAsGroup: 65532
-        allowPrivilegeEscalation: false
-        readOnlyRootFilesystem: true
-        capabilities:
-          drop:
-            - ALL
+        - name: aws-helper
+          mountPath: /aws/helper
+        - name: aws-config
+          mountPath: /aws/config
 
   extraContainers: []
 
