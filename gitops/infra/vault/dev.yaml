@@ -20,14 +20,14 @@ server:
   extraEnvironmentVars:
     AWS_REGION: "ap-southeast-1"
     AWS_DEFAULT_REGION: "ap-southeast-1"
-    AWS_EC2_METADATA_SERVICE_ENDPOINT: "http://127.0.0.1:9911"
+    AWS_EC2_METADATA_SERVICE_ENDPOINT: "http://127.0.0.1:9911/"
     AWS_EC2_METADATA_DISABLED: "false"
 
   volumes:
     - name: rolesanywhere-cert
       secret:
         secretName: vault-rolesanywhere-cert
-        defaultMode: 0400
+        defaultMode: 0440
 
   volumeMounts:
     - name: rolesanywhere-cert
@@ -60,21 +60,28 @@ server:
       startupProbe:
         exec:
           command:
-            - curl
-            - -sf
-            - http://127.0.0.1:9911/latest/meta-data/iam/security-credentials/
-        initialDelaySeconds: 1
-        periodSeconds: 5
-        timeoutSeconds: 15
-        failureThreshold: 24
+            - /usr/local/bin/aws_signing_helper
+            - credential-process
+            - --certificate
+            - /vault/userconfig/rolesanywhere/tls.crt
+            - --private-key
+            - /vault/userconfig/rolesanywhere/tls.key
+            - --trust-anchor-arn
+            - arn:aws:rolesanywhere:ap-southeast-1:637423223528:trust-anchor/181e3f00-1651-419d-8f29-16715addb3f3
+            - --profile-arn
+            - arn:aws:rolesanywhere:ap-southeast-1:637423223528:profile/2c1f5435-3a01-4f9b-89d1-30347d783c83
+            - --role-arn
+            - arn:aws:iam::637423223528:role/extreme-lab-dev-vault
+        initialDelaySeconds: 2
+        periodSeconds: 10
+        timeoutSeconds: 20
+        failureThreshold: 18
       livenessProbe:
-        exec:
-          command:
-            - curl
-            - -sf
-            - http://127.0.0.1:9911/latest/meta-data/iam/security-credentials/
+        tcpSocket:
+          port: 9911
+        initialDelaySeconds: 10
         periodSeconds: 30
-        timeoutSeconds: 15
+        timeoutSeconds: 5
         failureThreshold: 3
       resources:
         requests:
@@ -86,6 +93,7 @@ server:
       securityContext:
         runAsNonRoot: true
         runAsUser: 65532
+        runAsGroup: 65532
         allowPrivilegeEscalation: false
         readOnlyRootFilesystem: true
         capabilities:
