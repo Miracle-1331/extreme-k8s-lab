@@ -57,6 +57,21 @@ server:
         - name: rolesanywhere-cert
           mountPath: /vault/userconfig/rolesanywhere
           readOnly: true
+      startupProbe:
+        httpGet:
+          path: /latest/meta-data/iam/security-credentials/
+          port: 9911
+        initialDelaySeconds: 1
+        periodSeconds: 5
+        timeoutSeconds: 15
+        failureThreshold: 24
+      livenessProbe:
+        httpGet:
+          path: /latest/meta-data/iam/security-credentials/
+          port: 9911
+        periodSeconds: 30
+        timeoutSeconds: 15
+        failureThreshold: 3
       resources:
         requests:
           cpu: 25m
