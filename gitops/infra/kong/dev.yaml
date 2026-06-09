@@ -8,6 +8,8 @@ controller:
 
 gateway:
   enabled: true
+  proxy:
+    type: ClusterIP
 
 proxy:
   type: ClusterIP
