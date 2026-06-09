@@ -16,6 +16,7 @@ spec:
             releaseName: cert-manager
             valuesPath: gitops/infra/cert-manager/dev.yaml
             createNamespace: "false"
+            skipCRDs: "false"
 
           - name: vault
             repoURL: https://helm.releases.hashicorp.com
@@ -25,6 +26,7 @@ spec:
             releaseName: vault
             valuesPath: gitops/infra/vault/dev.yaml
             createNamespace: "false"
+            skipCRDs: "false"
 
           - name: rook-ceph
             repoURL: https://charts.rook.io/release
@@ -34,6 +36,7 @@ spec:
             releaseName: rook-ceph
             valuesPath: gitops/infra/rook-ceph/dev.yaml
             createNamespace: "false"
+            skipCRDs: "false"
 
           - name: istio-base
             repoURL: https://istio-release.storage.googleapis.com/charts
@@ -43,6 +46,7 @@ spec:
             releaseName: istio-base
             valuesPath: gitops/infra/istio-base/dev.yaml
             createNamespace: "false"
+            skipCRDs: "false"
 
           - name: istiod
             repoURL: https://istio-release.storage.googleapis.com/charts
@@ -52,6 +56,7 @@ spec:
             releaseName: istiod
             valuesPath: gitops/infra/istiod/dev.yaml
             createNamespace: "false"
+            skipCRDs: "false"
 
           - name: istio-cni
             repoURL: https://istio-release.storage.googleapis.com/charts
@@ -61,6 +66,7 @@ spec:
             releaseName: istio-cni
             valuesPath: gitops/infra/istio-cni/dev.yaml
             createNamespace: "false"
+            skipCRDs: "false"
 
           - name: istio-ztunnel
             repoURL: https://istio-release.storage.googleapis.com/charts
@@ -70,6 +76,7 @@ spec:
             releaseName: ztunnel
             valuesPath: gitops/infra/istio-ztunnel/dev.yaml
             createNamespace: "false"
+            skipCRDs: "false"
 
           - name: vault-secrets-operator
             repoURL: https://helm.releases.hashicorp.com
@@ -79,7 +86,17 @@ spec:
             releaseName: vault-secrets-operator
             valuesPath: gitops/infra/vault-secrets-operator/dev.yaml
             createNamespace: "true"
+            skipCRDs: "false"
 
+          - name: kong
+            repoURL: https://charts.konghq.com
+            chart: ingress
+            targetRevision: "0.24.0"
+            namespace: kong
+            releaseName: kong
+            valuesPath: gitops/infra/kong/dev.yaml
+            createNamespace: "false"
+            skipCRDs: "true"
 
           - name: external-dns
             repoURL: https://kubernetes-sigs.github.io/external-dns/
@@ -89,6 +106,7 @@ spec:
             releaseName: external-dns
             valuesPath: gitops/infra/external-dns/dev.yaml
             createNamespace: "false"
+            skipCRDs: "false"
 
           # - name: observability-grafana
           #   repoURL: https://grafana.github.io/helm-charts
@@ -163,3 +181,4 @@ spec:
         syncOptions:
           - CreateNamespace={{.createNamespace}}
           - ServerSideApply=true
+          - SkipCRDs={{.skipCRDs}}
