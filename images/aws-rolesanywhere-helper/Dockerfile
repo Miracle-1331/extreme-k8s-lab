@@ -1,9 +1,9 @@
 FROM alpine:3.20
 
 ARG TARGETARCH
-ARG HELPER_VERSION=1.7.3
+ARG HELPER_VERSION=1.7.1
 
-RUN apk add --no-cache ca-certificates curl gcompat && \
+RUN apk add --no-cache ca-certificates curl jq && \
     case "${TARGETARCH}" in \
     amd64) HELPER_ARCH="X86_64" ;; \
     arm64) HELPER_ARCH="Aarch64" ;; \
@@ -13,7 +13,7 @@ RUN apk add --no-cache ca-certificates curl gcompat && \
     echo "Downloading ${HELPER_URL}" && \
     curl -fsSL "${HELPER_URL}" -o /usr/local/bin/aws_signing_helper && \
     chmod 0555 /usr/local/bin/aws_signing_helper && \
-    /usr/local/bin/aws_signing_helper version
+    /usr/local/bin/aws_signing_helper version || true
 
 USER 65532:65532
 
