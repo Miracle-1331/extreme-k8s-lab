@@ -1,0 +1,45 @@
+provider:
+  name: cloudflare
+
+sources:
+  - gateway-httproute
+  - gateway-grpcroute
+  - gateway-tlsroute
+  - service
+  - ingress
+
+policy: sync
+registry: txt
+txtOwnerId: extreme-lab-dev
+txtPrefix: external-dns-
+
+domainFilters:
+  - merveilles.org
+
+extraArgs:
+  - --cloudflare-proxied
+  - --gateway-name=public-gateway
+  - --gateway-namespace=public
+  - --zone-id-filter=b033a5e03810ba8766f3148bfed25f91
+
+env:
+  - name: CF_API_TOKEN
+    valueFrom:
+      secretKeyRef:
+        name: external-dns-cloudflare-token
+        key: CLOUDFLARE_API_TOKEN
+
+serviceAccount:
+  create: true
+  name: external-dns
+
+rbac:
+  create: true
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi

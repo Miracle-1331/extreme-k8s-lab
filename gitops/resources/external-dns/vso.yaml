@@ -2,39 +2,39 @@ apiVersion: secrets.hashicorp.com/v1beta1
 kind: VaultConnection
 metadata:
   name: vault
-  namespace: cloudflare
+  namespace: external-dns
 spec:
   address: http://vault.vault.svc.cluster.local:8200
 ---
 apiVersion: secrets.hashicorp.com/v1beta1
 kind: VaultAuth
 metadata:
-  name: cloudflared
-  namespace: cloudflare
+  name: external-dns
+  namespace: external-dns
 spec:
   vaultConnectionRef: vault
   method: kubernetes
   mount: kubernetes
   kubernetes:
-    role: cloudflared-token-reader
-    serviceAccount: cloudflared-vault-auth
+    role: external-dns-cloudflare-reader
+    serviceAccount: external-dns-vault-auth
 ---
 apiVersion: secrets.hashicorp.com/v1beta1
 kind: VaultStaticSecret
 metadata:
-  name: cloudflared-token
-  namespace: cloudflare
+  name: external-dns-cloudflare-token
+  namespace: external-dns
   annotations:
     argocd.argoproj.io/sync-wave: "10"
 spec:
-  vaultAuthRef: cloudflared
+  vaultAuthRef: external-dns
   mount: kv
   type: kv-v2
-  path: cloudflare/tunnel-token
-  refreshAfter: 60s
+  path: cloudflare/external-dns
+  refreshAfter: 5m
   destination:
     create: true
-    name: cloudflared-token
+    name: external-dns-cloudflare-token
   rolloutRestartTargets:
     - kind: Deployment
-      name: cloudflared
+      name: external-dns

@@ -89,6 +89,15 @@ spec:
             valuesPath: gitops/infra/kong/dev.yaml
             createNamespace: "false"
 
+          - name: external-dns
+            repoURL: https://kubernetes-sigs.github.io/external-dns/
+            chart: external-dns
+            targetRevision: "1.21.1"
+            namespace: external-dns
+            releaseName: external-dns
+            valuesPath: gitops/infra/external-dns/dev.yaml
+            createNamespace: "false"
+
           # - name: observability-grafana
           #   repoURL: https://grafana.github.io/helm-charts
           #   chart: grafana

@@ -17,6 +17,7 @@ spec:
     - https://istio-release.storage.googleapis.com/charts
     - https://charts.konghq.com
     - https://github.com/kubernetes-sigs/gateway-api.git
+    - https://kubernetes-sigs.github.io/external-dns/
   destinations:
     - namespace: "*"
       server: https://kubernetes.default.svc
