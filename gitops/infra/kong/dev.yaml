@@ -1,0 +1,38 @@
+controller:
+  ingressController:
+    enabled: true
+    gatewayDiscovery:
+      enabled: true
+    env:
+      feature_gates: "GatewayAlpha=true"
+
+gateway:
+  enabled: true
+
+proxy:
+  type: ClusterIP
+  http:
+    enabled: true
+    servicePort: 80
+    containerPort: 8000
+  tls:
+    enabled: true
+    servicePort: 443
+    containerPort: 8443
+
+admin:
+  enabled: false
+
+manager:
+  enabled: false
+
+env:
+  database: "off"
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi

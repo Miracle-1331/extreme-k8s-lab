@@ -1,0 +1,38 @@
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultConnection
+metadata:
+  name: vault
+  namespace: cloudflare
+spec:
+  address: http://vault.vault.svc.cluster.local:8200
+---
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultAuth
+metadata:
+  name: cloudflared
+  namespace: cloudflare
+spec:
+  vaultConnectionRef: vault
+  method: kubernetes
+  mount: kubernetes
+  kubernetes:
+    role: cloudflared-token-reader
+    serviceAccount: cloudflared-vault-auth
+---
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultStaticSecret
+metadata:
+  name: cloudflared-token
+  namespace: cloudflare
+spec:
+  vaultAuthRef: cloudflared
+  mount: kv
+  type: kv-v2
+  path: cloudflare/tunnel-token
+  refreshAfter: 60s
+  destination:
+    create: true
+    name: cloudflared-token
+  rolloutRestartTargets:
+    - kind: Deployment
+      name: cloudflared

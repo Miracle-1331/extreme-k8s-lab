@@ -71,6 +71,24 @@ spec:
             valuesPath: gitops/infra/istio-ztunnel/dev.yaml
             createNamespace: "false"
 
+          - name: vault-secrets-operator
+            repoURL: https://helm.releases.hashicorp.com
+            chart: vault-secrets-operator
+            targetRevision: "1.4.0"
+            namespace: vault-secrets-operator
+            releaseName: vault-secrets-operator
+            valuesPath: gitops/infra/vault-secrets-operator/dev.yaml
+            createNamespace: "true"
+
+          - name: kong
+            repoURL: https://charts.konghq.com
+            chart: ingress
+            targetRevision: "0.24.0"
+            namespace: kong
+            releaseName: kong
+            valuesPath: gitops/infra/kong/dev.yaml
+            createNamespace: "false"
+
           # - name: observability-grafana
           #   repoURL: https://grafana.github.io/helm-charts
           #   chart: grafana
@@ -143,3 +161,4 @@ spec:
           selfHeal: true
         syncOptions:
           - CreateNamespace={{.createNamespace}}
+          - ServerSideApply=true
