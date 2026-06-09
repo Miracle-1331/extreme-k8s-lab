@@ -20,77 +20,87 @@ server:
   extraEnvironmentVars:
     AWS_REGION: "ap-southeast-1"
     AWS_DEFAULT_REGION: "ap-southeast-1"
-    AWS_SDK_LOAD_CONFIG: "1"
-    AWS_CONFIG_FILE: "/aws/config/credentials"
-    AWS_EC2_METADATA_DISABLED: "true"
+    AWS_EC2_METADATA_SERVICE_ENDPOINT: "http://127.0.0.1:9911/"
+    AWS_EC2_METADATA_DISABLED: "false"
 
   volumes:
     - name: rolesanywhere-cert
       secret:
         secretName: vault-rolesanywhere-cert
         defaultMode: 0444
-    - name: aws-helper
-      emptyDir: {}
-    - name: aws-config
-      emptyDir: {}
 
   volumeMounts:
     - name: rolesanywhere-cert
       mountPath: /vault/userconfig/rolesanywhere
       readOnly: true
-    - name: aws-helper
-      mountPath: /aws/helper
-      readOnly: true
-    - name: aws-config
-      mountPath: /aws/config
-      readOnly: true
 
   extraInitContainers:
-    - name: setup-rolesanywhere-credential-process
-      image: miraclezz/aws-rolesanywhere-helper:1.7.1-arm64
+    - name: rolesanywhere-credential-helper
+      image: public.ecr.aws/rolesanywhere/credential-helper:1.8.3-arm64-2026.05.13.19.39
       imagePullPolicy: IfNotPresent
-      command:
-        - /bin/sh
-        - -ec
+      restartPolicy: Always
       args:
-        - |
-          set -eux
-
-          cp /usr/local/bin/aws_signing_helper /aws/helper/aws_signing_helper
-          chmod 0555 /aws/helper/aws_signing_helper
-
-          printf '[default]\nregion = ap-southeast-1\ncredential_process = /aws/helper/aws_signing_helper credential-process --certificate /vault/userconfig/rolesanywhere/tls.crt --private-key /vault/userconfig/rolesanywhere/tls.key --trust-anchor-arn arn:aws:rolesanywhere:ap-southeast-1:637423223528:trust-anchor/181e3f00-1651-419d-8f29-16715addb3f3 --profile-arn arn:aws:rolesanywhere:ap-southeast-1:637423223528:profile/2c1f5435-3a01-4f9b-89d1-30347d783c83 --role-arn arn:aws:iam::637423223528:role/extreme-lab-dev-vault\n' > /aws/config/credentials
-
-          chmod 0444 /aws/config/credentials
-
-          echo "--- config written ---"
-          cat /aws/config/credentials
-
-          /aws/helper/aws_signing_helper credential-process \
-            --certificate /vault/userconfig/rolesanywhere/tls.crt \
-            --private-key /vault/userconfig/rolesanywhere/tls.key \
-            --trust-anchor-arn arn:aws:rolesanywhere:ap-southeast-1:637423223528:trust-anchor/181e3f00-1651-419d-8f29-16715addb3f3 \
-            --profile-arn arn:aws:rolesanywhere:ap-southeast-1:637423223528:profile/2c1f5435-3a01-4f9b-89d1-30347d783c83 \
-            --role-arn arn:aws:iam::637423223528:role/extreme-lab-dev-vault \
-            | grep -q AccessKeyId
-
-          echo "Roles Anywhere credential-process verified OK"
+        - serve
+        - --certificate
+        - /vault/userconfig/rolesanywhere/tls.crt
+        - --private-key
+        - /vault/userconfig/rolesanywhere/tls.key
+        - --trust-anchor-arn
+        - arn:aws:rolesanywhere:ap-southeast-1:637423223528:trust-anchor/181e3f00-1651-419d-8f29-16715addb3f3
+        - --profile-arn
+        - arn:aws:rolesanywhere:ap-southeast-1:637423223528:profile/2c1f5435-3a01-4f9b-89d1-30347d783c83
+        - --role-arn
+        - arn:aws:iam::637423223528:role/extreme-lab-dev-vault
+        - --port
+        - "9911"
+      startupProbe:
+        exec:
+          command:
+            - /rolesanywhere/aws_signing_helper
+            - credential-process
+            - --certificate
+            - /vault/userconfig/rolesanywhere/tls.crt
+            - --private-key
+            - /vault/userconfig/rolesanywhere/tls.key
+            - --trust-anchor-arn
+            - arn:aws:rolesanywhere:ap-southeast-1:637423223528:trust-anchor/181e3f00-1651-419d-8f29-16715addb3f3
+            - --profile-arn
+            - arn:aws:rolesanywhere:ap-southeast-1:637423223528:profile/2c1f5435-3a01-4f9b-89d1-30347d783c83
+            - --role-arn
+            - arn:aws:iam::637423223528:role/extreme-lab-dev-vault
+        initialDelaySeconds: 2
+        periodSeconds: 10
+        timeoutSeconds: 30
+        failureThreshold: 18
+      livenessProbe:
+        exec:
+          command:
+            - /rolesanywhere/aws_signing_helper
+            - credential-process
+            - --certificate
+            - /vault/userconfig/rolesanywhere/tls.crt
+            - --private-key
+            - /vault/userconfig/rolesanywhere/tls.key
+            - --trust-anchor-arn
+            - arn:aws:rolesanywhere:ap-southeast-1:637423223528:trust-anchor/181e3f00-1651-419d-8f29-16715addb3f3
+            - --profile-arn
+            - arn:aws:rolesanywhere:ap-southeast-1:637423223528:profile/2c1f5435-3a01-4f9b-89d1-30347d783c83
+            - --role-arn
+            - arn:aws:iam::637423223528:role/extreme-lab-dev-vault
+        periodSeconds: 60
+        timeoutSeconds: 30
+        failureThreshold: 3
       volumeMounts:
         - name: rolesanywhere-cert
           mountPath: /vault/userconfig/rolesanywhere
           readOnly: true
-        - name: aws-helper
-          mountPath: /aws/helper
-        - name: aws-config
-          mountPath: /aws/config
-      securityContext:
-        runAsNonRoot: true
-        runAsUser: 65532
-        allowPrivilegeEscalation: false
-        readOnlyRootFilesystem: true
-        capabilities:
-          drop:
-            - ALL
+      resources:
+        requests:
+          cpu: 25m
+          memory: 32Mi
+        limits:
+          cpu: 200m
+          memory: 128Mi
 
   extraContainers: []
 
