@@ -1,0 +1,21 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: public-gateway
+  namespace: kong
+  annotations:
+    external-dns.alpha.kubernetes.io/target: "1c8acaf6-e193-473b-9b29-bf0010874810.cfargotunnel.com"
+    argocd.argoproj.io/sync-wave: "20"
+spec:
+  gatewayClassName: kong
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+      hostname: "*.merveilles.org"
+      allowedRoutes:
+        namespaces:
+          from: Selector
+          selector:
+            matchLabels:
+              gateway-access: public
