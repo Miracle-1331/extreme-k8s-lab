@@ -19,7 +19,7 @@ domainFilters:
 extraArgs:
   - --cloudflare-proxied
   - --gateway-name=public-gateway
-  - --gateway-namespace=public
+  - --gateway-namespace=kong
   - --zone-id-filter=b033a5e03810ba8766f3148bfed25f91
 
 env:

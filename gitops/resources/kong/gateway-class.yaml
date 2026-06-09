@@ -4,5 +4,6 @@ metadata:
   name: kong
   annotations:
     argocd.argoproj.io/sync-wave: "-1"
+    konghq.com/gatewayclass-unmanaged: "true"
 spec:
   controllerName: konghq.com/kic-gateway-controller
