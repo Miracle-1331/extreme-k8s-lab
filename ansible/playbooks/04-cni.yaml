@@ -4,13 +4,21 @@
   hosts: control_plane
   become: true
 
+  vars:
+    kubeconfig: /etc/kubernetes/admin.conf
+    cilium_cli_arch: arm64
+
+    # Pin the Cilium chart/app version for reproducibility.
+    # Change intentionally, not automatically.
+    cilium_version: "1.17.6"
+
   tasks:
     - name: Install Cilium CLI
       ansible.builtin.shell: |
         set -euo pipefail
 
         CILIUM_CLI_VERSION="$(curl -fsSL https://raw.githubusercontent.com/cilium/cilium-cli/main/stable.txt)"
-        CLI_ARCH="arm64"
+        CLI_ARCH="{{ cilium_cli_arch }}"
 
         curl -L --fail --remote-name-all \
           "https://github.com/cilium/cilium-cli/releases/download/${CILIUM_CLI_VERSION}/cilium-linux-${CLI_ARCH}.tar.gz"
@@ -23,18 +31,43 @@
         creates: /usr/local/bin/cilium
 
     - name: Check if Cilium is already installed
-      ansible.builtin.command: kubectl --kubeconfig=/etc/kubernetes/admin.conf get daemonset cilium -n kube-system
+      ansible.builtin.command: kubectl --kubeconfig={{ kubeconfig }} get daemonset cilium -n kube-system
       register: cilium_ds
       failed_when: false
       changed_when: false
 
-    - name: Install Cilium
-      ansible.builtin.command: cilium install
+    - name: Install Cilium for kubeadm + Istio ambient compatibility
+      ansible.builtin.command: >
+        cilium install
+        --version {{ cilium_version }}
+        --set cni.exclusive=false
+        --set bpf.masquerade=false
       environment:
-        KUBECONFIG: /etc/kubernetes/admin.conf
+        KUBECONFIG: "{{ kubeconfig }}"
       when: cilium_ds.rc != 0
+
+    - name: Upgrade Cilium config for Istio ambient compatibility if already installed
+      ansible.builtin.command: >
+        cilium upgrade
+        --version {{ cilium_version }}
+        --set cni.exclusive=false
+        --set bpf.masquerade=false
+      environment:
+        KUBECONFIG: "{{ kubeconfig }}"
+      when: cilium_ds.rc == 0
 
     - name: Wait for Cilium
       ansible.builtin.command: cilium status --wait
       environment:
-        KUBECONFIG: /etc/kubernetes/admin.conf
+        KUBECONFIG: "{{ kubeconfig }}"
+
+    - name: Show Cilium config relevant to Istio ambient
+      ansible.builtin.shell: |
+        kubectl --kubeconfig={{ kubeconfig }} get configmap cilium-config -n kube-system \
+          -o jsonpath='{.data.cni-exclusive}{"\n"}{.data.bpf-masquerade}{"\n"}'
+      register: cilium_ambient_config
+      changed_when: false
+
+    - name: Print Cilium ambient compatibility config
+      ansible.builtin.debug:
+        var: cilium_ambient_config.stdout_lines
