@@ -41,3 +41,36 @@
     - name: Apply sysctl
       ansible.builtin.command: sysctl --system
       changed_when: false
+
+    - name: Install chrony
+      ansible.builtin.apt:
+        name: chrony
+        state: present
+        update_cache: true
+
+    - name: Disable systemd-timesyncd (conflicts with chrony)
+      ansible.builtin.systemd:
+        name: systemd-timesyncd
+        state: stopped
+        enabled: false
+      ignore_errors: true
+
+    - name: Configure chrony with makestep for VM clock jumps
+      ansible.builtin.copy:
+        dest: /etc/chrony/conf.d/makestep.conf
+        mode: "0644"
+        content: |
+          makestep 0.1 -1
+      notify: Restart chrony
+
+    - name: Enable and start chrony
+      ansible.builtin.systemd:
+        name: chrony
+        state: started
+        enabled: true
+
+  handlers:
+    - name: Restart chrony
+      ansible.builtin.systemd:
+        name: chrony
+        state: restarted
