@@ -20,18 +20,24 @@ server:
   extraEnvironmentVars:
     AWS_REGION: "ap-southeast-1"
     AWS_DEFAULT_REGION: "ap-southeast-1"
-    AWS_EC2_METADATA_SERVICE_ENDPOINT: "http://127.0.0.1:9911/"
-    AWS_EC2_METADATA_DISABLED: "false"
+    AWS_SHARED_CREDENTIALS_FILE: "/aws/credentials/credentials"
+    AWS_PROFILE: "default"
+    AWS_EC2_METADATA_DISABLED: "true"
 
   volumes:
     - name: rolesanywhere-cert
       secret:
         secretName: vault-rolesanywhere-cert
         defaultMode: 0444
+    - name: aws-credentials
+      emptyDir: {}
 
   volumeMounts:
     - name: rolesanywhere-cert
       mountPath: /vault/userconfig/rolesanywhere
+      readOnly: true
+    - name: aws-credentials
+      mountPath: /aws/credentials
       readOnly: true
 
   extraInitContainers:
@@ -39,8 +45,11 @@ server:
       image: public.ecr.aws/rolesanywhere/credential-helper:1.8.3-arm64-2026.05.13.19.39
       imagePullPolicy: IfNotPresent
       restartPolicy: Always
+      env:
+        - name: AWS_SHARED_CREDENTIALS_FILE
+          value: /aws/credentials/credentials
       args:
-        - serve
+        - update
         - --certificate
         - /vault/userconfig/rolesanywhere/tls.crt
         - --private-key
@@ -51,8 +60,8 @@ server:
         - arn:aws:rolesanywhere:ap-southeast-1:637423223528:profile/2c1f5435-3a01-4f9b-89d1-30347d783c83
         - --role-arn
         - arn:aws:iam::637423223528:role/extreme-lab-dev-vault
-        - --port
-        - "9911"
+        - --profile
+        - default
       startupProbe:
         exec:
           command:
@@ -94,6 +103,8 @@ server:
         - name: rolesanywhere-cert
           mountPath: /vault/userconfig/rolesanywhere
           readOnly: true
+        - name: aws-credentials
+          mountPath: /aws/credentials
       resources:
         requests:
           cpu: 25m
