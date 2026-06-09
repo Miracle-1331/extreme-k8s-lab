@@ -1,5 +1,3 @@
-installCRDs: false
-
 controller:
   ingressController:
     enabled: true

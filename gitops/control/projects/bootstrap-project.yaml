@@ -16,6 +16,7 @@ spec:
     - https://charts.rook.io/release
     - https://istio-release.storage.googleapis.com/charts
     - https://charts.konghq.com
+    - https://github.com/Kong/charts.git
     - https://github.com/kubernetes-sigs/gateway-api.git
     - https://kubernetes-sigs.github.io/external-dns/
   destinations:
