@@ -5,3 +5,6 @@ server:
 configs:
   params:
     server.insecure: "true"
+
+global:
+  domain: argocd.merveilles.org
