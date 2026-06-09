@@ -56,7 +56,7 @@ server:
       startupProbe:
         exec:
           command:
-            - /rolesanywhere/aws_signing_helper
+            - /usr/local/bin/aws_signing_helper
             - credential-process
             - --certificate
             - /vault/userconfig/rolesanywhere/tls.crt
@@ -75,7 +75,7 @@ server:
       livenessProbe:
         exec:
           command:
-            - /rolesanywhere/aws_signing_helper
+            - /usr/local/bin/aws_signing_helper
             - credential-process
             - --certificate
             - /vault/userconfig/rolesanywhere/tls.crt
