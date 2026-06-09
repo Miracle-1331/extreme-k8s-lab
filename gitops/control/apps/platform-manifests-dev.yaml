@@ -12,6 +12,7 @@ spec:
     path: gitops/resources
     directory:
       recurse: true
+      exclude: "{cloudflared/**}"
 
   destination:
     server: https://kubernetes.default.svc
