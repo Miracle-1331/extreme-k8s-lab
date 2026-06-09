@@ -1,6 +1,9 @@
 controller:
   ingressController:
     enabled: true
+    gatewayDiscovery:
+      enabled: true
+      generateDefaultGateway: ""
     env:
       feature_gates: "GatewayAlpha=true"
 
