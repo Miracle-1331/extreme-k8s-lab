@@ -5,6 +5,27 @@ server:
 configs:
   params:
     server.insecure: "true"
+  cm:
+    oidc.config: |
+      name: Keycloak
+      issuer: https://sso.merveilles.org/realms/platform
+      clientID: argocd
+      clientSecret: $oidc.keycloak.clientSecret
+      requestedScopes: ["openid", "profile", "email", "groups"]
+      enablePKCEAuthentication: true
+  secret:
+    extra: {} # clientSecret injected via --set-string
+  rbac:
+    policy.default: role:readonly
+    policy.csv: |
+      g, platform-admins, role:admin
+      g, platform-readonly, role:readonly
+
+      p, role:developer, applications, get, */*, allow
+      p, role:developer, applications, sync, */*, allow
+      p, role:developer, logs, get, */*, allow
+      g, platform-developers, role:developer
+    scopes: "[groups]"
 
 global:
   domain: argocd.merveilles.org
