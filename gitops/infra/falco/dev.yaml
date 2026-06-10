@@ -4,7 +4,7 @@ driver:
 tty: true
 
 falco:
-  jsonOutput: true
+  json_output: true
   logLevel: info
   priority: warning
 
