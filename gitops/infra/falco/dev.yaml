@@ -5,7 +5,7 @@ tty: true
 
 falco:
   json_output: true
-  logLevel: info
+  log_level: info
   priority: warning
 
 resources:
