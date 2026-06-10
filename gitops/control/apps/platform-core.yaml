@@ -1,22 +1,27 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: cloudflared
+  name: platform-core
   namespace: argocd
   annotations:
     argocd.argoproj.io/sync-wave: "10"
 spec:
   project: platform
+
   source:
     repoURL: git@github.com:Miracle-1331/extreme-k8s-lab.git
     targetRevision: main
-    path: gitops/platform/cloudflared
+    path: gitops/platform
+    directory:
+      recurse: true
+      exclude: "{cloudflared/**}"
+
   destination:
     server: https://kubernetes.default.svc
-    namespace: cloudflare
+    namespace: argocd
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
     syncOptions:
-      - CreateNamespace=false
+      - ServerSideApply=true

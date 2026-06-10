@@ -5,7 +5,7 @@ CHART_VERSION="9.5.20"
 NAMESPACE="argocd"
 REPO_NAME="argo"
 REPO_URL="https://argoproj.github.io/argo-helm"
-VALUES="$(dirname "$0")/../gitops/infra/argocd/dev.yaml"
+VALUES="$(dirname "$0")/../gitops/releases/argocd/values-dev.yaml"
 
 echo "== Adding/updating Helm repo =="
 if helm repo list 2>/dev/null | grep -q "^${REPO_NAME}[[:space:]]"; then

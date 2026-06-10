@@ -16,9 +16,10 @@ spec:
             targetRevision: "v1.20.2"
             namespace: cert-manager
             releaseName: cert-manager
-            valuesPath: gitops/infra/cert-manager/dev.yaml
+            valuesPath: gitops/releases/cert-manager/values-dev.yaml
             createNamespace: "false"
             skipCRDs: "false"
+            wave: "10"
 
           - name: vault
             repoURL: https://helm.releases.hashicorp.com
@@ -26,9 +27,10 @@ spec:
             targetRevision: "0.32.0"
             namespace: vault
             releaseName: vault
-            valuesPath: gitops/infra/vault/dev.yaml
+            valuesPath: gitops/releases/vault/values-dev.yaml
             createNamespace: "false"
             skipCRDs: "false"
+            wave: "10"
 
           - name: rook-ceph
             repoURL: https://charts.rook.io/release
@@ -36,9 +38,10 @@ spec:
             targetRevision: "v1.16.6"
             namespace: rook-ceph
             releaseName: rook-ceph
-            valuesPath: gitops/infra/rook-ceph/dev.yaml
+            valuesPath: gitops/releases/rook-ceph/values-dev.yaml
             createNamespace: "false"
             skipCRDs: "false"
+            wave: "10"
 
           - name: istio-base
             repoURL: https://istio-release.storage.googleapis.com/charts
@@ -46,9 +49,10 @@ spec:
             targetRevision: "1.30.1"
             namespace: istio-system
             releaseName: istio-base
-            valuesPath: gitops/infra/istio-base/dev.yaml
+            valuesPath: gitops/releases/istio-base/values-dev.yaml
             createNamespace: "false"
             skipCRDs: "false"
+            wave: "10"
 
           - name: istiod
             repoURL: https://istio-release.storage.googleapis.com/charts
@@ -56,9 +60,10 @@ spec:
             targetRevision: "1.30.1"
             namespace: istio-system
             releaseName: istiod
-            valuesPath: gitops/infra/istiod/dev.yaml
+            valuesPath: gitops/releases/istiod/values-dev.yaml
             createNamespace: "false"
             skipCRDs: "false"
+            wave: "15"
 
           - name: istio-cni
             repoURL: https://istio-release.storage.googleapis.com/charts
@@ -66,9 +71,10 @@ spec:
             targetRevision: "1.30.1"
             namespace: istio-system
             releaseName: istio-cni
-            valuesPath: gitops/infra/istio-cni/dev.yaml
+            valuesPath: gitops/releases/istio-cni/values-dev.yaml
             createNamespace: "false"
             skipCRDs: "false"
+            wave: "15"
 
           - name: istio-ztunnel
             repoURL: https://istio-release.storage.googleapis.com/charts
@@ -76,9 +82,10 @@ spec:
             targetRevision: "1.30.1"
             namespace: istio-system
             releaseName: ztunnel
-            valuesPath: gitops/infra/istio-ztunnel/dev.yaml
+            valuesPath: gitops/releases/istio-ztunnel/values-dev.yaml
             createNamespace: "false"
             skipCRDs: "false"
+            wave: "15"
 
           - name: vault-secrets-operator
             repoURL: https://helm.releases.hashicorp.com
@@ -86,9 +93,10 @@ spec:
             targetRevision: "1.4.0"
             namespace: vault-secrets-operator
             releaseName: vault-secrets-operator
-            valuesPath: gitops/infra/vault-secrets-operator/dev.yaml
+            valuesPath: gitops/releases/vault-secrets-operator/values-dev.yaml
             createNamespace: "true"
             skipCRDs: "false"
+            wave: "10"
 
           - name: kong
             repoURL: https://charts.konghq.com
@@ -96,9 +104,10 @@ spec:
             targetRevision: "0.24.0"
             namespace: kong
             releaseName: kong
-            valuesPath: gitops/infra/kong/dev.yaml
+            valuesPath: gitops/releases/kong/values-dev.yaml
             createNamespace: "false"
             skipCRDs: "true"
+            wave: "10"
 
           - name: external-dns
             repoURL: https://kubernetes-sigs.github.io/external-dns/
@@ -106,9 +115,10 @@ spec:
             targetRevision: "1.21.1"
             namespace: external-dns
             releaseName: external-dns
-            valuesPath: gitops/infra/external-dns/dev.yaml
+            valuesPath: gitops/releases/external-dns/values-dev.yaml
             createNamespace: "false"
             skipCRDs: "false"
+            wave: "10"
 
           - name: cloudnative-pg
             repoURL: https://cloudnative-pg.github.io/charts
@@ -116,9 +126,10 @@ spec:
             targetRevision: "0.28.2"
             namespace: cnpg-system
             releaseName: cloudnative-pg
-            valuesPath: gitops/infra/cloudnative-pg/dev.yaml
+            valuesPath: gitops/releases/cloudnative-pg/values-dev.yaml
             createNamespace: "true"
             skipCRDs: "false"
+            wave: "10"
 
           - name: kyverno
             repoURL: https://kyverno.github.io/kyverno/
@@ -126,9 +137,10 @@ spec:
             targetRevision: "3.8.1"
             namespace: kyverno
             releaseName: kyverno
-            valuesPath: gitops/infra/kyverno/dev.yaml
+            valuesPath: gitops/releases/kyverno/values-dev.yaml
             createNamespace: "true"
             skipCRDs: "false"
+            wave: "10"
 
           - name: falco
             repoURL: https://falcosecurity.github.io/charts
@@ -136,9 +148,10 @@ spec:
             targetRevision: "9.0.0"
             namespace: falco
             releaseName: falco
-            valuesPath: gitops/infra/falco/dev.yaml
+            valuesPath: gitops/releases/falco/values-dev.yaml
             createNamespace: "true"
             skipCRDs: "false"
+            wave: "10"
 
           - name: falco-k8saudit
             repoURL: https://falcosecurity.github.io/charts
@@ -146,9 +159,10 @@ spec:
             targetRevision: "9.0.0"
             namespace: falco
             releaseName: falco-k8saudit
-            valuesPath: gitops/infra/falco-k8saudit/dev.yaml
+            valuesPath: gitops/releases/falco-k8saudit/values-dev.yaml
             createNamespace: "true"
             skipCRDs: "false"
+            wave: "10"
 
           # - name: observability-grafana
           #   repoURL: https://grafana.github.io/helm-charts
@@ -156,8 +170,9 @@ spec:
           #   targetRevision: "10.2.0"
           #   namespace: observability
           #   releaseName: grafana
-          #   valuesPath: gitops/infra/grafana/dev.yaml
+          #   valuesPath: gitops/releases/grafana/values-dev.yaml
           #   createNamespace: "false"
+          #   wave: "10"
 
           # - name: observability-loki
           #   repoURL: https://grafana.github.io/helm-charts
@@ -165,8 +180,9 @@ spec:
           #   targetRevision: "6.46.0"
           #   namespace: observability
           #   releaseName: loki
-          #   valuesPath: gitops/infra/loki/dev.yaml
+          #   valuesPath: gitops/releases/loki/values-dev.yaml
           #   createNamespace: "false"
+          #   wave: "10"
 
           # - name: observability-alloy
           #   repoURL: https://grafana.github.io/helm-charts
@@ -174,8 +190,9 @@ spec:
           #   targetRevision: "1.4.0"
           #   namespace: observability
           #   releaseName: alloy
-          #   valuesPath: gitops/infra/alloy/dev.yaml
+          #   valuesPath: gitops/releases/alloy/values-dev.yaml
           #   createNamespace: "false"
+          #   wave: "10"
 
           # - name: observability-mimir
           #   repoURL: https://grafana.github.io/helm-charts
@@ -183,8 +200,9 @@ spec:
           #   targetRevision: "6.0.4"
           #   namespace: observability
           #   releaseName: mimir
-          #   valuesPath: gitops/infra/mimir/dev.yaml
+          #   valuesPath: gitops/releases/mimir/values-dev.yaml
           #   createNamespace: "false"
+          #   wave: "10"
 
           # - name: observability-tempo
           #   repoURL: https://grafana.github.io/helm-charts
@@ -192,12 +210,15 @@ spec:
           #   targetRevision: "1.24.3"
           #   namespace: observability
           #   releaseName: tempo
-          #   valuesPath: gitops/infra/tempo/dev.yaml
+          #   valuesPath: gitops/releases/tempo/values-dev.yaml
           #   createNamespace: "false"
+          #   wave: "10"
   template:
     metadata:
       name: "{{.name}}"
       namespace: argocd
+      annotations:
+        argocd.argoproj.io/sync-wave: "{{.wave}}"
     spec:
       project: platform
 

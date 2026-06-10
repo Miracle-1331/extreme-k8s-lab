@@ -11,8 +11,10 @@ ansible/          Playbooks + group_vars + generated inventory
 gitops/
   bootstrap/      Root App-of-Apps (seeded once via make argocd-bootstrap)
   control/        ArgoCD AppProject, ApplicationSet, Applications
-  infra/          Helm values per component (dev.yaml per chart)
-  resources/      Raw Kubernetes manifests (namespaces, kong, argocd, apps, etc.)
+  releases/       Helm values per component (values-dev.yaml per chart)
+  platform/       Raw Kubernetes manifests — namespaces, gateway, storage, vault, keycloak, etc.
+  security/       Kyverno ClusterPolicies (audit/ and enforce/)
+  workloads/      App manifests (nginx-test, mesh-demo)
 images/           Dockerfiles for custom sidecars
 lima/             VM definition YAMLs
 pki/              OpenSSL configs + local CA/leaf certs (keys/certs gitignored)
@@ -60,29 +62,32 @@ make argocd            # helm upgrade --install argo/argo-cd v9.5.20 -n argocd
 make argocd-bootstrap  # register SSH repo creds, apply AppProject + root App-of-Apps
 ```
 
-To apply changes to ArgoCD's own Helm values (`gitops/infra/argocd/dev.yaml`), re-run:
+To apply changes to ArgoCD's own Helm values (`gitops/releases/argocd/values-dev.yaml`), re-run:
 
 ```bash
 make argocd   # or: bash scripts/install-argocd.sh
 ```
 
 ArgoCD self-syncs everything under `gitops/control/`:
-- `appsets/infra-dev.yaml` — ApplicationSet deploying all infra charts (wave 10)
-- `apps/platform-manifests-dev.yaml` — syncs raw manifests from `gitops/resources/` (wave 10), excludes `cloudflared/**` and `platform-security/**`
-- `apps/platform-security.yaml` — Kyverno ClusterPolicies from `gitops/resources/platform-security/` (wave 20, after Kyverno installs)
+- `appsets/infra-dev.yaml` — ApplicationSet deploying all infra Helm charts (waves 10–15)
+- `apps/platform-core.yaml` — syncs raw manifests from `gitops/platform/` (wave 10), excludes `cloudflared/**`
+- `apps/platform-security.yaml` — Kyverno ClusterPolicies from `gitops/security/audit/` (wave 20, after Kyverno installs)
+- `apps/workloads.yaml` — syncs `gitops/workloads/` (wave 30, after platform is up)
 - `apps/cloudflared.yaml`, `apps/gateway-api-crds.yaml`, `apps/kong-crds.yaml` — standalone apps (wave 10)
 
-Helm values live in `gitops/infra/<component>/dev.yaml`.
+Helm values live in `gitops/releases/<component>/values-dev.yaml`.
 
 ### Sync-wave order
 
 | Wave | Object |
 |------|--------|
 | 1 | `platform` AppProject |
-| 10 | All Helm apps (infra-dev ApplicationSet), platform-manifests-dev, CRD apps |
+| 10 | All Helm apps (infra-dev ApplicationSet wave 10), platform-core, CRD apps, cloudflared |
+| 15 | istiod, istio-cni, istio-ztunnel (depend on istio-base at wave 10) |
 | 20 | `platform-security-policies`, HTTPRoutes, cloudflared Deployment |
+| 30 | `workloads` (nginx-test, mesh-demo — after platform namespaces and gateway are up) |
 
-When adding a new Application to `gitops/control/apps/`, always set `argocd.argoproj.io/sync-wave: "10"` (or `"20"` if it depends on CRDs from wave-10 charts).
+When adding a new Application to `gitops/control/apps/`, always set `argocd.argoproj.io/sync-wave: "10"` (or `"20"` if it depends on CRDs from wave-10 charts, or `"30"` for workloads).
 
 ### HTTPRoute pattern
 
@@ -123,17 +128,17 @@ spec:
 | CloudNative PG | 0.28.2 | cnpg-system |
 | Keycloak | 26.6.3 (raw manifest) | keycloak |
 
-Observability stack (Grafana/Loki/Alloy/Mimir/Tempo) is defined but commented out in `infra-dev.yaml`. Empty placeholder `dev.yaml` files exist for each — required by the ApplicationSet `valuesPath` template even when the entry is commented out.
+Observability stack (Grafana/Loki/Alloy/Mimir/Tempo) is defined but commented out in `infra-dev.yaml`. Empty placeholder `values-dev.yaml` files exist for each — required by the ApplicationSet `valuesPath` template even when the entry is commented out.
 
 ### Secret delivery pattern (Vault Secrets Operator)
 
-Every app that needs secrets follows this three-resource pattern in its `resources/<app>/vso.yaml`:
+Every app that needs secrets follows this three-resource pattern in its `platform/<app>/vso.yaml`:
 
 ```
 VaultConnection → VaultAuth (kubernetes method) → VaultStaticSecret or VaultDynamicSecret
 ```
 
-Keycloak uses `VaultDynamicSecret` (database engine, `creds/keycloak-app-readwrite`). All others use `VaultStaticSecret` from the `kv` mount.
+Keycloak uses `VaultDynamicSecret` (database engine, `creds/keycloak-app-readwrite`). All others use `VaultStaticSecret` from the `kv` mount. VSO resources are co-located with the workload that consumes them (same `platform/<app>/` directory) — they must be in the same namespace as the target Secret.
 
 ### CRD separation pattern
 
@@ -150,12 +155,12 @@ internet → Cloudflare (*.merveilles.org wildcard cert + proxied)
 ```
 
 Key resources:
-- `resources/kong/gateway-class.yaml` — GatewayClass `kong` with `konghq.com/gatewayclass-unmanaged: "true"`
-- `resources/kong/public-gateway.yaml` — Gateway in `kong` ns, HTTP :80, `*.merveilles.org`, allows routes from namespaces labelled `gateway-access: public`
-- HTTPRoutes live next to their apps in `resources/<app>/` or `resources/apps/<app>/`
+- `platform/gateway/gateway-class.yaml` — GatewayClass `kong` with `konghq.com/gatewayclass-unmanaged: "true"`
+- `platform/gateway/public-gateway.yaml` — Gateway in `kong` ns, HTTP :80, `*.merveilles.org`, allows routes from namespaces labelled `gateway-access: public`
+- HTTPRoutes live next to their apps in `platform/<app>/` or `workloads/<app>/`
 - ExternalDNS watches `gateway-httproute` source; annotate HTTPRoutes with `external-dns.alpha.kubernetes.io/target: <tunnel-id>.cfargotunnel.com` to create Cloudflare DNS records
 
-Namespaces that expose services publicly must be labelled `gateway-access: public` (managed in `resources/platform-namespaces/namespaces.yaml`).
+Namespaces that expose services publicly must be labelled `gateway-access: public` (managed in `platform/namespaces/namespaces.yaml`).
 
 ## AWS integration
 
@@ -176,9 +181,9 @@ Creates: Roles Anywhere trust anchor, KMS key (Vault auto-unseal), Velero S3 buc
 - Kong timeout annotations on `argocd-server` Service (`konghq.com/read-timeout: "300000"`) keep the ArgoCD SSE stream alive through Kong — without these the UI shows "failed to load data" every 60 s.
 - Istio **ambient mode** (not sidecar). Namespaces opt in with `istio.io/dataplane-mode: ambient`. mTLS enforced via `AuthorizationPolicy`, not `PeerAuthentication` sidecars.
 - Falco runs two releases: `falco` (eBPF, system calls) and `falco-k8saudit` (deployment mode, k8saudit plugin over NodePort 30007). The kube-apiserver is patched by Ansible to forward audit events to that NodePort.
-- `platform-security/` holds Kyverno `ClusterPolicy` objects. All policies are in `Audit` mode — they log violations but do not block. Privileged container exclusions cover `kube-system`, `istio-system`, `rook-ceph`, `falco`.
+- `security/audit/` holds Kyverno `ClusterPolicy` objects. All policies are in `Audit` mode — they log violations but do not block. Privileged container exclusions cover `kube-system`, `istio-system`, `rook-ceph`, `falco`.
 - Storage: two StorageClasses — `ceph-block` (RBD, default, `WaitForFirstConsumer`) and `ceph-filesystem` (CephFS, `Immediate`). Use `ceph-block` for databases; `ceph-filesystem` for shared read-write-many workloads.
-- `mesh-demo` namespace demonstrates the full security stack: ambient mesh + NetworkPolicy (deny-all + allow-dns + app-a→app-b) + Istio AuthorizationPolicy + Kyverno resource-limits policy + PSA labels + ResourceQuota/LimitRange.
+- `mesh-demo` workload demonstrates the full security stack: ambient mesh + NetworkPolicy (deny-all + allow-dns + app-a→app-b) + Istio AuthorizationPolicy + Kyverno resource-limits policy + PSA labels + ResourceQuota/LimitRange.
 
 ## Resetting the cluster
 

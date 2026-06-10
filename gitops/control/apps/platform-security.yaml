@@ -10,7 +10,9 @@ spec:
   source:
     repoURL: git@github.com:Miracle-1331/extreme-k8s-lab.git
     targetRevision: main
-    path: gitops/resources/platform-security
+    path: gitops/security/audit
+    directory:
+      recurse: true
   destination:
     server: https://kubernetes.default.svc
     namespace: kyverno
