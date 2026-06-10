@@ -8,12 +8,16 @@ tty: true
 collectors:
   kubernetes:
     enabled: true
+    verbosity: error
 
 falco:
   json_output: true
   log_level: info
   priority: warning
   time_format_iso_8601: true
+  libs_logger:
+    enabled: true
+    severity: error
   webserver:
     prometheus_metrics_enabled: true
 
