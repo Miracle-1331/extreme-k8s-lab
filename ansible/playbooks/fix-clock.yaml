@@ -1,0 +1,71 @@
+- name: Capture correct time from controller
+  hosts: localhost
+  gather_facts: true
+  tasks:
+    - name: Store controller UTC time
+      ansible.builtin.set_fact:
+        controller_utc: "{{ ansible_date_time.iso8601 | regex_replace('T', ' ') | regex_replace('Z', '') }}"
+
+- name: Fix VM clock drift and restart Kubernetes components
+  hosts: k8s
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Check current VM time
+      ansible.builtin.command: date -u '+%Y-%m-%d %H:%M:%S'
+      changed_when: false
+      register: vm_time
+
+    - name: Print VM time vs controller time
+      ansible.builtin.debug:
+        msg: "VM: {{ vm_time.stdout }} | Controller: {{ hostvars['localhost']['controller_utc'] }}"
+
+    - name: Stop lima-guestagent and chrony before adjusting clock
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        state: stopped
+      loop:
+        - lima-guestagent
+        - chrony
+      ignore_errors: true
+
+    # Lima/vz (Apple Virtualization Framework) owns the hardware clock.
+    # The only reliable fix for extreme drift (>1y) is a VM restart from the host.
+    # This task attempts a software adjustment as a best-effort fallback.
+    - name: Attempt clock adjustment via chronyc (works for small drift)
+      ansible.builtin.shell: |
+        chronyc makestep 2>&1 || true
+      changed_when: false
+
+    - name: Re-enable and restart chrony with NTP sync
+      ansible.builtin.systemd:
+        name: chrony
+        state: restarted
+        enabled: true
+
+    - name: Re-enable lima-guestagent
+      ansible.builtin.systemd:
+        name: lima-guestagent
+        state: started
+        enabled: true
+      ignore_errors: true
+
+    - name: Check time after sync attempt
+      ansible.builtin.command: date -u '+%Y-%m-%d %H:%M:%S'
+      changed_when: false
+      register: vm_time_after
+
+    - name: Report result
+      ansible.builtin.debug:
+        msg: >-
+          {{ 'Clock fixed: ' + vm_time_after.stdout
+             if vm_time_after.stdout[:4] == hostvars['localhost']['controller_utc'][:4]
+             else 'Clock still drifted: ' + vm_time_after.stdout
+                  + ' — restart the VM with: limactl stop '
+                  + inventory_hostname + ' && limactl start ' + inventory_hostname }}
+
+    - name: Restart kubelet if clock is now correct
+      ansible.builtin.systemd:
+        name: kubelet
+        state: restarted
+      when: vm_time_after.stdout[:4] == hostvars['localhost']['controller_utc'][:4]
