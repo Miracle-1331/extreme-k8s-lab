@@ -5,6 +5,7 @@ metadata:
   namespace: vault
   annotations:
     external-dns.alpha.kubernetes.io/target: "1c8acaf6-e193-473b-9b29-bf0010874810.cfargotunnel.com"
+    argocd.argoproj.io/sync-wave: "20"
 spec:
   parentRefs:
     - name: public-gateway

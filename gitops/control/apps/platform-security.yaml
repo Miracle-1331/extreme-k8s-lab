@@ -1,24 +1,19 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: platform-manifests-dev
+  name: platform-security-policies
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: "10"
+    argocd.argoproj.io/sync-wave: "20"
 spec:
   project: platform
-
   source:
     repoURL: git@github.com:Miracle-1331/extreme-k8s-lab.git
     targetRevision: main
-    path: gitops/resources
-    directory:
-      recurse: true
-      exclude: "{cloudflared/**,platform-security/**}"
-
+    path: gitops/resources/platform-security
   destination:
     server: https://kubernetes.default.svc
-    namespace: argocd
+    namespace: kyverno
   syncPolicy:
     automated:
       prune: true

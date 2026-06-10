@@ -21,3 +21,46 @@ metadata:
   name: public
   labels:
     gateway-access: public
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+    platform.merveilles.org/tier: app
+    platform.merveilles.org/owner: platform
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: namespace-quota
+  namespace: public
+spec:
+  hard:
+    requests.cpu: "4"
+    requests.memory: 8Gi
+    limits.cpu: "8"
+    limits.memory: 16Gi
+    pods: "50"
+    services: "20"
+    configmaps: "50"
+    secrets: "50"
+    persistentvolumeclaims: "10"
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: default-container-limits
+  namespace: public
+spec:
+  limits:
+    - type: Container
+      defaultRequest:
+        cpu: 50m
+        memory: 64Mi
+      default:
+        cpu: 500m
+        memory: 512Mi
+      min:
+        cpu: 10m
+        memory: 32Mi
+      max:
+        cpu: "2"
+        memory: 2Gi

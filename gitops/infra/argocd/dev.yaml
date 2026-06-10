@@ -1,6 +1,10 @@
 server:
   service:
     type: ClusterIP
+    annotations:
+      konghq.com/read-timeout: "300000"
+      konghq.com/write-timeout: "300000"
+      konghq.com/connect-timeout: "30000"
 
 configs:
   params:
