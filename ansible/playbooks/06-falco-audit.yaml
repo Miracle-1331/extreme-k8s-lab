@@ -3,8 +3,8 @@
 # Configures the kube-apiserver static pod to ship audit events to Falco's
 # k8saudit webhook (NodePort 30007 on the control-plane node).
 #
-# Safe to re-run: idempotent via block detection. The apiserver restarts
-# automatically when its static pod manifest changes (kubelet watches it).
+# Idempotent: uses Python to parse and patch the YAML directly, so
+# indentation is always correct and re-runs are safe.
 
 - name: Configure kube-apiserver audit webhook for Falco k8saudit
   hosts: control_plane
@@ -48,52 +48,76 @@
           preferences: {}
           users: []
 
-    - name: Check if audit flags already present in apiserver manifest
-      ansible.builtin.command: >
-        grep -q 'audit-policy-file' {{ apiserver_manifest }}
-      register: audit_already_configured
-      failed_when: false
-      changed_when: false
+    - name: Patch kube-apiserver manifest via Python (idempotent, correct indentation)
+      ansible.builtin.script:
+        cmd: /dev/stdin
+        executable: python3
+      args:
+        stdin: |
+          import sys, re
 
-    - name: Patch kube-apiserver manifest — add audit flags to command
-      ansible.builtin.replace:
-        path: "{{ apiserver_manifest }}"
-        regexp: '(\s+- kube-apiserver\s*\n)'
-        replace: |
-          \1    - --audit-policy-file=/etc/kubernetes/audit-policy.yaml
-              - --audit-webhook-config-file=/etc/kubernetes/audit-webhook.yaml
-              - --audit-webhook-batch-max-wait=5s
-      when: audit_already_configured.rc != 0
+          path = '/etc/kubernetes/manifests/kube-apiserver.yaml'
+          with open(path) as f:
+              content = f.read()
 
-    - name: Patch kube-apiserver manifest — mount audit files into container
-      ansible.builtin.blockinfile:
-        path: "{{ apiserver_manifest }}"
-        marker: "# {mark} FALCO AUDIT MOUNTS"
-        insertafter: '^\s+volumeMounts:'
-        block: |
-              - mountPath: /etc/kubernetes/audit-policy.yaml
-                name: audit-policy
-                readOnly: true
-              - mountPath: /etc/kubernetes/audit-webhook.yaml
-                name: audit-webhook
-                readOnly: true
-      when: audit_already_configured.rc != 0
+          changed = False
 
-    - name: Patch kube-apiserver manifest — add audit hostPath volumes
-      ansible.builtin.blockinfile:
-        path: "{{ apiserver_manifest }}"
-        marker: "# {mark} FALCO AUDIT VOLUMES"
-        insertafter: '^  volumes:'
-        block: |
-            - hostPath:
-                path: /etc/kubernetes/audit-policy.yaml
-                type: File
-              name: audit-policy
-            - hostPath:
-                path: /etc/kubernetes/audit-webhook.yaml
-                type: File
-              name: audit-webhook
-      when: audit_already_configured.rc != 0
+          # --- audit flags in command ---
+          audit_flags = [
+              '    - --audit-policy-file=/etc/kubernetes/audit-policy.yaml',
+              '    - --audit-webhook-config-file=/etc/kubernetes/audit-webhook.yaml',
+              '    - --audit-webhook-batch-max-wait=5s',
+          ]
+          if '--audit-policy-file' not in content:
+              content = content.replace(
+                  '    - kube-apiserver\n',
+                  '    - kube-apiserver\n' + '\n'.join(audit_flags) + '\n'
+              )
+              changed = True
+
+          # --- volumeMounts ---
+          mount_entries = (
+              '    - mountPath: /etc/kubernetes/audit-policy.yaml\n'
+              '      name: audit-policy\n'
+              '      readOnly: true\n'
+              '    - mountPath: /etc/kubernetes/audit-webhook.yaml\n'
+              '      name: audit-webhook\n'
+              '      readOnly: true\n'
+          )
+          if 'audit-policy' not in content:
+              content = re.sub(
+                  r'(    volumeMounts:\n)',
+                  r'\1' + mount_entries,
+                  content
+              )
+              changed = True
+
+          # --- volumes ---
+          volume_entries = (
+              '  - hostPath:\n'
+              '      path: /etc/kubernetes/audit-policy.yaml\n'
+              '      type: File\n'
+              '    name: audit-policy\n'
+              '  - hostPath:\n'
+              '      path: /etc/kubernetes/audit-webhook.yaml\n'
+              '      type: File\n'
+              '    name: audit-webhook\n'
+          )
+          if 'audit-policy' not in content.split('volumes:')[-1]:
+              content = re.sub(
+                  r'(  volumes:\n)',
+                  r'\1' + volume_entries,
+                  content
+              )
+              changed = True
+
+          with open(path, 'w') as f:
+              f.write(content)
+
+          print('changed' if changed else 'ok')
+          sys.exit(0)
+      register: patch_result
+      changed_when: "'changed' in patch_result.stdout"
 
     - name: Wait for kube-apiserver to become healthy after restart
       ansible.builtin.command: >
@@ -104,7 +128,7 @@
       retries: 30
       delay: 5
       changed_when: false
-      when: audit_already_configured.rc != 0
+      when: patch_result.changed
 
     - name: Confirm audit webhook is configured
       ansible.builtin.command: >
