@@ -64,8 +64,7 @@ customRules:
         - system:serviceaccount:vault-secrets-operator:vault-secrets-operator-controller-manager
 
     - rule: K8s Secret Get Successfully
-      override:
-        enabled: "false"
+      enabled: false
 
     - rule: K8s Secret Get Successfully By Untrusted Principal
       desc: Detect successful secret reads by non-trusted service accounts
