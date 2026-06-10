@@ -50,6 +50,38 @@ falco:
       init_config: ""
   load_plugins: [k8saudit, json]
 
+customRules:
+  k8s-audit-local-overrides.yaml: |-
+    - list: trusted_secret_readers
+      items:
+        - system:serviceaccount:argocd:argocd-application-controller
+        - system:serviceaccount:kyverno:kyverno-admission-controller
+        - system:serviceaccount:kyverno:kyverno-cleanup-controller
+        - system:serviceaccount:cert-manager:cert-manager
+        - system:serviceaccount:cert-manager:cert-manager-cainjector
+        - system:serviceaccount:istio-system:istiod
+        - system:serviceaccount:cnpg-system:cloudnative-pg
+        - system:serviceaccount:vault-secrets-operator:vault-secrets-operator-controller-manager
+
+    - rule: K8s Secret Get Successfully
+      override:
+        enabled: "false"
+
+    - rule: K8s Secret Get Successfully By Untrusted Principal
+      desc: Detect successful secret reads by non-trusted service accounts
+      condition: >
+        ka.target.resource = secrets and
+        ka.verb = get and
+        ka.response.code = 200 and
+        not ka.user.name in (trusted_secret_readers)
+      output: >
+        Untrusted principal read Kubernetes Secret
+        (user=%ka.user.name secret=%ka.target.name ns=%ka.target.namespace
+        decision=%ka.auth.decision reason=%ka.auth.reason)
+      priority: WARNING
+      source: k8s_audit
+      tags: [k8s, secrets, rbac]
+
 resources:
   requests:
     cpu: 100m
