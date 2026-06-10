@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-app-a-to-app-b
+  namespace: mesh-demo
+spec:
+  podSelector:
+    matchLabels:
+      app: app-b
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: app-a
+      ports:
+        - protocol: TCP
+          port: 80

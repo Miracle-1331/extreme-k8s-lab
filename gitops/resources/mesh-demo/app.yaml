@@ -13,6 +13,7 @@ spec:
       labels:
         app: app-a
     spec:
+      serviceAccountName: app-a
       containers:
         - name: curl
           image: curlimages/curl:8.10.1
@@ -40,6 +41,7 @@ spec:
       labels:
         app: app-b
     spec:
+      serviceAccountName: app-b
       containers:
         - name: httpbin
           image: kong/httpbin

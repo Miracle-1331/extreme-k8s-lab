@@ -6,7 +6,23 @@
 # spec:
 #   mtls:
 #     mode: STRICT
-
+# ---
+# apiVersion: security.istio.io/v1
+# kind: AuthorizationPolicy
+# metadata:
+#   name: app-b-allow-app-a-only
+#   namespace: mesh-demo
+# spec:
+#   selector:
+#     matchLabels:
+#       app: app-b
+#   action: ALLOW
+#   rules:
+#     - from:
+#         - source:
+#             principals:
+#               - cluster.local/ns/mesh-demo/sa/default
+---
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
@@ -21,4 +37,4 @@ spec:
     - from:
         - source:
             principals:
-              - cluster.local/ns/mesh-demo/sa/default
+              - cluster.local/ns/mesh-demo/sa/app-a

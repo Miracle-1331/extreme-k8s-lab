@@ -118,6 +118,16 @@ spec:
             createNamespace: "true"
             skipCRDs: "false"
 
+          - name: kyverno
+            repoURL: https://kyverno.github.io/kyverno/
+            chart: kyverno
+            targetRevision: "3.8.1"
+            namespace: kyverno
+            releaseName: kyverno
+            valuesPath: gitops/infra/kyverno/dev.yaml
+            createNamespace: "true"
+            skipCRDs: "false"
+
           # - name: observability-grafana
           #   repoURL: https://grafana.github.io/helm-charts
           #   chart: grafana
