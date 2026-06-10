@@ -31,7 +31,7 @@ metadata:
   name: keycloak-db
   namespace: keycloak
   annotations:
-    argocd.argoproj.io/sync-wave: "10"
+    argocd.argoproj.io/sync-wave: "5"
 spec:
   vaultAuthRef: keycloak
   mount: database
