@@ -1,17 +1,33 @@
 driver:
   kind: modern_ebpf
+  modernEbpf:
+    leastPrivileged: true
 
 tty: true
+
+collectors:
+  kubernetes:
+    enabled: true
 
 falco:
   json_output: true
   log_level: info
   priority: warning
+  time_format_iso_8601: true
+  webserver:
+    prometheus_metrics_enabled: true
+
+metrics:
+  enabled: true
+  interval: 15m
+  resourceUtilizationEnabled: true
+  kernelEventCountersEnabled: true
+  rulesCountersEnabled: true
 
 resources:
   requests:
     cpu: 100m
-    memory: 256Mi
+    memory: 512Mi
   limits:
     cpu: 1000m
     memory: 1Gi
