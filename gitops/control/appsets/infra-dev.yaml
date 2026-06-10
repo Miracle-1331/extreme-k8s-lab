@@ -108,6 +108,16 @@ spec:
             createNamespace: "false"
             skipCRDs: "false"
 
+          - name: cloudnative-pg
+            repoURL: https://cloudnative-pg.github.io/charts
+            chart: cloudnative-pg
+            targetRevision: "0.28.2"
+            namespace: cnpg-system
+            releaseName: cloudnative-pg
+            valuesPath: gitops/infra/cloudnative-pg/dev.yaml
+            createNamespace: "true"
+            skipCRDs: "false"
+
           # - name: observability-grafana
           #   repoURL: https://grafana.github.io/helm-charts
           #   chart: grafana
