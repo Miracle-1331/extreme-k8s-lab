@@ -19,6 +19,7 @@ spec:
     - https://github.com/Kong/charts.git
     - https://github.com/kubernetes-sigs/gateway-api.git
     - https://kubernetes-sigs.github.io/external-dns/
+    - https://cloudnative-pg.github.io/charts
   destinations:
     - namespace: "*"
       server: https://kubernetes.default.svc
