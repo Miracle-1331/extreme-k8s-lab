@@ -65,6 +65,8 @@ customRules:
 
     - rule: K8s Secret Get Successfully
       enabled: false
+      override:
+        enabled: replace
 
     - rule: K8s Secret Get Successfully By Untrusted Principal
       desc: Detect successful secret reads by non-trusted service accounts
