@@ -8,7 +8,9 @@ metadata:
     argocd.argoproj.io/sync-wave: "20"
 spec:
   parentRefs:
-    - name: public-gateway
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: public-gateway
       namespace: kong
   hostnames:
     - "argocd.merveilles.org"
@@ -18,5 +20,8 @@ spec:
             type: PathPrefix
             value: /
       backendRefs:
-        - name: argocd-server
+        - group: ""
+          kind: Service
+          name: argocd-server
           port: 80
+          weight: 1

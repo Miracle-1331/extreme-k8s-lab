@@ -47,7 +47,9 @@ metadata:
     external-dns.alpha.kubernetes.io/target: "1c8acaf6-e193-473b-9b29-bf0010874810.cfargotunnel.com"
 spec:
   parentRefs:
-    - name: public-gateway
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: public-gateway
       namespace: kong
   hostnames:
     - "nginx-test.merveilles.org"
@@ -57,5 +59,8 @@ spec:
             type: PathPrefix
             value: /
       backendRefs:
-        - name: nginx-test
+        - group: ""
+          kind: Service
+          name: nginx-test
           port: 80
+          weight: 1
