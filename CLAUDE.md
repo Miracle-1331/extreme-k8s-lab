@@ -60,12 +60,49 @@ make argocd            # helm upgrade --install argo/argo-cd v9.5.20 -n argocd
 make argocd-bootstrap  # register SSH repo creds, apply AppProject + root App-of-Apps
 ```
 
+To apply changes to ArgoCD's own Helm values (`gitops/infra/argocd/dev.yaml`), re-run:
+
+```bash
+make argocd   # or: bash scripts/install-argocd.sh
+```
+
 ArgoCD self-syncs everything under `gitops/control/`:
-- `appsets/infra-dev.yaml` — ApplicationSet deploying all infra charts
-- `apps/platform-manifests-dev.yaml` — syncs raw manifests from `gitops/resources/`
-- `apps/cloudflared.yaml`, `apps/gateway-api-crds.yaml`, `apps/kong-crds.yaml` — standalone apps
+- `appsets/infra-dev.yaml` — ApplicationSet deploying all infra charts (wave 10)
+- `apps/platform-manifests-dev.yaml` — syncs raw manifests from `gitops/resources/` (wave 10), excludes `cloudflared/**` and `platform-security/**`
+- `apps/platform-security.yaml` — Kyverno ClusterPolicies from `gitops/resources/platform-security/` (wave 20, after Kyverno installs)
+- `apps/cloudflared.yaml`, `apps/gateway-api-crds.yaml`, `apps/kong-crds.yaml` — standalone apps (wave 10)
 
 Helm values live in `gitops/infra/<component>/dev.yaml`.
+
+### Sync-wave order
+
+| Wave | Object |
+|------|--------|
+| 1 | `platform` AppProject |
+| 10 | All Helm apps (infra-dev ApplicationSet), platform-manifests-dev, CRD apps |
+| 20 | `platform-security-policies`, HTTPRoutes, cloudflared Deployment |
+
+When adding a new Application to `gitops/control/apps/`, always set `argocd.argoproj.io/sync-wave: "10"` (or `"20"` if it depends on CRDs from wave-10 charts).
+
+### HTTPRoute pattern
+
+All HTTPRoutes must include explicit defaulted fields or ArgoCD will show perpetual OutOfSync diffs (the Gateway API webhook injects these at admission time):
+
+```yaml
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io   # required — omitting causes diff
+      kind: Gateway
+      name: public-gateway
+      namespace: kong
+  rules:
+    - backendRefs:
+        - group: ""                        # required — omitting causes diff
+          kind: Service
+          name: my-service
+          port: 80
+          weight: 1                        # required — omitting causes diff
+```
 
 ## Installed components
 
@@ -80,8 +117,27 @@ Helm values live in `gitops/infra/<component>/dev.yaml`.
 | Kong Ingress Controller | ingress 0.24.0 | kong |
 | ExternalDNS (Cloudflare) | 1.21.1 | external-dns |
 | cloudflared tunnel | 2026.5.2 | cloudflare |
+| Kyverno | 3.8.1 | kyverno |
+| Falco (eBPF) | 9.0.0 | falco |
+| Falco k8saudit | 9.0.0 | falco |
+| CloudNative PG | 0.28.2 | cnpg-system |
+| Keycloak | 26.6.3 (raw manifest) | keycloak |
 
-Observability stack (Grafana/Loki/Alloy/Mimir/Tempo) is defined but commented out in `infra-dev.yaml`.
+Observability stack (Grafana/Loki/Alloy/Mimir/Tempo) is defined but commented out in `infra-dev.yaml`. Empty placeholder `dev.yaml` files exist for each — required by the ApplicationSet `valuesPath` template even when the entry is commented out.
+
+### Secret delivery pattern (Vault Secrets Operator)
+
+Every app that needs secrets follows this three-resource pattern in its `resources/<app>/vso.yaml`:
+
+```
+VaultConnection → VaultAuth (kubernetes method) → VaultStaticSecret or VaultDynamicSecret
+```
+
+Keycloak uses `VaultDynamicSecret` (database engine, `creds/keycloak-app-readwrite`). All others use `VaultStaticSecret` from the `kv` mount.
+
+### CRD separation pattern
+
+Kong and Gateway API CRDs are split into dedicated Applications (`kong-crds`, `gateway-api-crds`) with `prune: false`. The `kong` entry in `infra-dev.yaml` sets `skipCRDs: "true"` to match. Follow the same pattern for any chart whose CRDs need independent lifecycle management.
 
 ## Public ingress architecture
 
@@ -114,8 +170,15 @@ Creates: Roles Anywhere trust anchor, KMS key (Vault auto-unseal), Velero S3 buc
 
 - `ansible/inventory.ini` is generated — Lima assigns random SSH ports on each start. Always re-run `generate-inventory.sh` before Ansible.
 - Rook-Ceph: workers have `/dev/vdb` raw disk for OSDs. CephCluster targets these explicitly.
-- Vault: soft anti-affinity, 3 replicas across 2 workers.
+- Vault: soft anti-affinity, 3 replicas across 2 workers. AWS KMS auto-unseal via `alias/extreme-lab-dev-vault-auto-unseal` (ap-southeast-1). IAM Roles Anywhere sidecar provides short-lived credentials from a local PKI cert in `vault-rolesanywhere-cert` (24 h, renewed 6 h before expiry by cert-manager).
 - `server.insecure: "true"` on ArgoCD — TLS terminated at Cloudflare, Kong proxies plain HTTP to `argocd-server:80`.
+- ArgoCD OIDC via Keycloak (`sso.merveilles.org/realms/platform`), PKCE enabled. Three RBAC roles: `platform-admins` (admin), `platform-developers` (get/sync/logs), `platform-readonly` (default).
+- Kong timeout annotations on `argocd-server` Service (`konghq.com/read-timeout: "300000"`) keep the ArgoCD SSE stream alive through Kong — without these the UI shows "failed to load data" every 60 s.
+- Istio **ambient mode** (not sidecar). Namespaces opt in with `istio.io/dataplane-mode: ambient`. mTLS enforced via `AuthorizationPolicy`, not `PeerAuthentication` sidecars.
+- Falco runs two releases: `falco` (eBPF, system calls) and `falco-k8saudit` (deployment mode, k8saudit plugin over NodePort 30007). The kube-apiserver is patched by Ansible to forward audit events to that NodePort.
+- `platform-security/` holds Kyverno `ClusterPolicy` objects. All policies are in `Audit` mode — they log violations but do not block. Privileged container exclusions cover `kube-system`, `istio-system`, `rook-ceph`, `falco`.
+- Storage: two StorageClasses — `ceph-block` (RBD, default, `WaitForFirstConsumer`) and `ceph-filesystem` (CephFS, `Immediate`). Use `ceph-block` for databases; `ceph-filesystem` for shared read-write-many workloads.
+- `mesh-demo` namespace demonstrates the full security stack: ambient mesh + NetworkPolicy (deny-all + allow-dns + app-a→app-b) + Istio AuthorizationPolicy + Kyverno resource-limits policy + PSA labels + ResourceQuota/LimitRange.
 
 ## Resetting the cluster
 
