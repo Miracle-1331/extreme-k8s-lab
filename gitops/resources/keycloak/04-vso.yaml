@@ -1,0 +1,45 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: keycloak-vault-auth
+  namespace: keycloak
+---
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultConnection
+metadata:
+  name: vault
+  namespace: keycloak
+spec:
+  address: http://vault.vault.svc.cluster.local:8200
+---
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultAuth
+metadata:
+  name: keycloak
+  namespace: keycloak
+spec:
+  vaultConnectionRef: vault
+  method: kubernetes
+  mount: kubernetes
+  kubernetes:
+    role: keycloak-db-reader
+    serviceAccount: keycloak-vault-auth
+---
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultDynamicSecret
+metadata:
+  name: keycloak-db
+  namespace: keycloak
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+spec:
+  vaultAuthRef: keycloak
+  mount: database
+  path: creds/keycloak-app-readwrite
+  renewalPercent: 67
+  destination:
+    create: true
+    name: keycloak-db-dynamic
+  rolloutRestartTargets:
+    - kind: Deployment
+      name: keycloak

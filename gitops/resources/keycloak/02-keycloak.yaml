@@ -13,6 +13,7 @@ spec:
       labels:
         app.kubernetes.io/name: keycloak
     spec:
+      serviceAccountName: keycloak-vault-auth
       containers:
         - name: keycloak
           image: quay.io/keycloak/keycloak:26.6.3
@@ -34,12 +35,12 @@ spec:
             - name: KC_DB_USERNAME
               valueFrom:
                 secretKeyRef:
-                  name: keycloak-db-app
+                  name: keycloak-db-dynamic
                   key: username
             - name: KC_DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: keycloak-db-app
+                  name: keycloak-db-dynamic
                   key: password
 
             - name: KC_BOOTSTRAP_ADMIN_USERNAME
