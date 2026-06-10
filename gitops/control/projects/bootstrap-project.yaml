@@ -3,6 +3,8 @@ kind: AppProject
 metadata:
   name: platform
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
 spec:
   description: "Platform apps (monitoring, toolchain, etc.)"
   sourceRepos:
