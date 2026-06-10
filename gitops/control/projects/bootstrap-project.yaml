@@ -23,6 +23,7 @@ spec:
     - https://kubernetes-sigs.github.io/external-dns/
     - https://cloudnative-pg.github.io/charts
     - https://kyverno.github.io/kyverno/
+    - https://falcosecurity.github.io/charts
   destinations:
     - namespace: "*"
       server: https://kubernetes.default.svc

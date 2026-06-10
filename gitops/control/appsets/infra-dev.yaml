@@ -130,6 +130,16 @@ spec:
             createNamespace: "true"
             skipCRDs: "false"
 
+          - name: falco
+            repoURL: https://falcosecurity.github.io/charts
+            chart: falco
+            targetRevision: "9.0.0"
+            namespace: falco
+            releaseName: falco
+            valuesPath: gitops/infra/falco/dev.yaml
+            createNamespace: "true"
+            skipCRDs: "false"
+
           # - name: observability-grafana
           #   repoURL: https://grafana.github.io/helm-charts
           #   chart: grafana

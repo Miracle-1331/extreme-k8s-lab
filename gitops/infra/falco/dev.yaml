@@ -1,0 +1,17 @@
+driver:
+  kind: modern_ebpf
+
+tty: true
+
+falco:
+  jsonOutput: true
+  logLevel: info
+  priority: warning
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
