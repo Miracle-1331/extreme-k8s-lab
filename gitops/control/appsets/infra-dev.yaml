@@ -140,6 +140,16 @@ spec:
             createNamespace: "true"
             skipCRDs: "false"
 
+          - name: falco-k8saudit
+            repoURL: https://falcosecurity.github.io/charts
+            chart: falco
+            targetRevision: "9.0.0"
+            namespace: falco
+            releaseName: falco-k8saudit
+            valuesPath: gitops/infra/falco-k8saudit/dev.yaml
+            createNamespace: "true"
+            skipCRDs: "false"
+
           # - name: observability-grafana
           #   repoURL: https://grafana.github.io/helm-charts
           #   chart: grafana

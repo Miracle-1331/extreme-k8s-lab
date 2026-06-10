@@ -2,7 +2,7 @@ SHELL := /usr/bin/env bash
 INVENTORY := ansible/inventory.ini
 NODES     := k8s-cp-1 k8s-worker-1 k8s-worker-2
 
-.PHONY: create start stop restart status inventory bootstrap kubeconfig
+.PHONY: create start stop restart status inventory bootstrap kubeconfig falco-audit
 
 ## First-time VM creation (downloads image, provisions OS)
 create:
@@ -51,3 +51,7 @@ argocd:
 ## Bootstrap ArgoCD: register SSH creds, apply AppProject + root Application
 argocd-bootstrap:
 	bash scripts/bootstrap-argocd.sh
+
+## Patch kube-apiserver to ship audit events to Falco k8saudit (NodePort 30007)
+falco-audit:
+	ansible-playbook -i ansible/inventory.ini ansible/playbooks/06-falco-audit.yaml

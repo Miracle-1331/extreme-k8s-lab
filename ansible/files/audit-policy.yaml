@@ -1,0 +1,46 @@
+apiVersion: audit.k8s.io/v1
+kind: Policy
+rules:
+  # Log secret, configmap, and token access at metadata level
+  - level: Metadata
+    resources:
+      - group: ""
+        resources: ["secrets", "configmaps"]
+      - group: "authentication.k8s.io"
+        resources: ["tokenreviews"]
+
+  # Log pod exec/attach/portforward at request level (captures who ran what)
+  - level: Request
+    verbs: ["create"]
+    resources:
+      - group: ""
+        resources: ["pods/exec", "pods/attach", "pods/portforward"]
+
+  # Log RBAC changes at RequestResponse level
+  - level: RequestResponse
+    resources:
+      - group: "rbac.authorization.k8s.io"
+        resources:
+          - clusterroles
+          - clusterrolebindings
+          - roles
+          - rolebindings
+
+  # Log service account creation/deletion
+  - level: Metadata
+    verbs: ["create", "delete", "update"]
+    resources:
+      - group: ""
+        resources: ["serviceaccounts"]
+
+  # Log namespace creation/deletion
+  - level: Metadata
+    verbs: ["create", "delete"]
+    resources:
+      - group: ""
+        resources: ["namespaces"]
+
+  # Log all other requests at metadata level (no body, just who/what/when)
+  - level: Metadata
+    omitStages:
+      - RequestReceived

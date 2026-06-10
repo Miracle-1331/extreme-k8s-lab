@@ -1,0 +1,117 @@
+# ansible/playbooks/06-falco-audit.yaml
+#
+# Configures the kube-apiserver static pod to ship audit events to Falco's
+# k8saudit webhook (NodePort 30007 on the control-plane node).
+#
+# Safe to re-run: idempotent via block detection. The apiserver restarts
+# automatically when its static pod manifest changes (kubelet watches it).
+
+- name: Configure kube-apiserver audit webhook for Falco k8saudit
+  hosts: control_plane
+  become: true
+
+  vars:
+    audit_policy_dest: /etc/kubernetes/audit-policy.yaml
+    audit_webhook_dest: /etc/kubernetes/audit-webhook.yaml
+    apiserver_manifest: /etc/kubernetes/manifests/kube-apiserver.yaml
+
+  tasks:
+    - name: Get control-plane vzNAT IP
+      ansible.builtin.shell: |
+        hostname -I | tr ' ' '\n' | grep '^192\.168\.105\.' | head -n1
+      register: cp_ip
+      changed_when: false
+
+    - name: Copy audit policy to control plane
+      ansible.builtin.copy:
+        src: ../files/audit-policy.yaml
+        dest: "{{ audit_policy_dest }}"
+        mode: "0600"
+
+    - name: Write audit webhook config
+      ansible.builtin.copy:
+        dest: "{{ audit_webhook_dest }}"
+        mode: "0600"
+        content: |
+          apiVersion: v1
+          kind: Config
+          clusters:
+            - name: falco-k8saudit
+              cluster:
+                server: http://{{ cp_ip.stdout }}:30007/k8s-audit
+          contexts:
+            - context:
+                cluster: falco-k8saudit
+                user: ""
+              name: default
+          current-context: default
+          preferences: {}
+          users: []
+
+    - name: Check if audit flags already present in apiserver manifest
+      ansible.builtin.command: >
+        grep -q 'audit-policy-file' {{ apiserver_manifest }}
+      register: audit_already_configured
+      failed_when: false
+      changed_when: false
+
+    - name: Patch kube-apiserver manifest — add audit flags to command
+      ansible.builtin.replace:
+        path: "{{ apiserver_manifest }}"
+        regexp: '(\s+- kube-apiserver\s*\n)'
+        replace: |
+          \1    - --audit-policy-file=/etc/kubernetes/audit-policy.yaml
+              - --audit-webhook-config-file=/etc/kubernetes/audit-webhook.yaml
+              - --audit-webhook-batch-max-wait=5s
+      when: audit_already_configured.rc != 0
+
+    - name: Patch kube-apiserver manifest — mount audit files into container
+      ansible.builtin.blockinfile:
+        path: "{{ apiserver_manifest }}"
+        marker: "# {mark} FALCO AUDIT MOUNTS"
+        insertafter: '^\s+volumeMounts:'
+        block: |
+              - mountPath: /etc/kubernetes/audit-policy.yaml
+                name: audit-policy
+                readOnly: true
+              - mountPath: /etc/kubernetes/audit-webhook.yaml
+                name: audit-webhook
+                readOnly: true
+      when: audit_already_configured.rc != 0
+
+    - name: Patch kube-apiserver manifest — add audit hostPath volumes
+      ansible.builtin.blockinfile:
+        path: "{{ apiserver_manifest }}"
+        marker: "# {mark} FALCO AUDIT VOLUMES"
+        insertafter: '^  volumes:'
+        block: |
+            - hostPath:
+                path: /etc/kubernetes/audit-policy.yaml
+                type: File
+              name: audit-policy
+            - hostPath:
+                path: /etc/kubernetes/audit-webhook.yaml
+                type: File
+              name: audit-webhook
+      when: audit_already_configured.rc != 0
+
+    - name: Wait for kube-apiserver to become healthy after restart
+      ansible.builtin.command: >
+        kubectl --kubeconfig=/etc/kubernetes/admin.conf
+        get --raw /healthz
+      register: apiserver_health
+      until: apiserver_health.stdout == "ok"
+      retries: 30
+      delay: 5
+      changed_when: false
+      when: audit_already_configured.rc != 0
+
+    - name: Confirm audit webhook is configured
+      ansible.builtin.command: >
+        grep audit-webhook-config-file {{ apiserver_manifest }}
+      register: audit_check
+      changed_when: false
+
+    - name: Print audit configuration status
+      ansible.builtin.debug:
+        msg: "Audit webhook configured: {{ audit_check.stdout }}"
